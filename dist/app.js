@@ -1,4 +1,4 @@
-import { categories, colors, currencies, amount, empty, validate, summary, csv, sample } from './model.mjs';
+import { categories, colors, currencies, amount, validate, summary, csv, sample } from './model.mjs';
 const $ = s => document.querySelector(s);
 const paths = { home:'m3 10 9-7 9 7M5 9v12h5v-7h4v7h5V9',list:'M5 4h14v17H5zM8 8h8M8 12h8M8 16h5',chart:'M5 21V11m7 10V4m7 17V8',settings:'m9 3-1 3-3 1-2 4 2 3 1 3 4 2 3-2 3-1 3-4-2-3-1-3-4-2-3 2ZM9 12a3 3 0 1 0 6 0 3 3 0 0 0-6 0',check:'M21 11v1a9 9 0 1 1-5-8M8 11l4 4 9-10',plus:'M12 5v14M5 12h14',close:'m6 6 12 12M6 18 18 6',refresh:'M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0 1 12-1l2 6M4 12l2 6a7 7 0 0 0 12-1',food:'M5 3v6c0 3 6 3 6 0V3M8 3v18M19 3c-5 3-5 10 0 10V3Zm0 10v8',bag:'M5 7h14l2 14H3L5 7Zm3 1V6a4 4 0 0 1 8 0v2',train:'M6 3h12v14H6zM6 10h12M9 14h0m6 0h0M8 17l-3 4m11-4 3 4',ticket:'M3 6h18v4a2 2 0 0 0 0 4v4H3v-4a2 2 0 0 0 0-4V6Zm12 0v12',dots:'M4 12h1m6 0h1m6 0h1',edit:'m4 16 11-11 4 4L8 20l-5 1 1-5ZM14 6l4 4',download:'M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5' };
 const icon = name => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[name] || paths.dots}"/></svg>`;
@@ -8,32 +8,52 @@ const escape = text => String(text).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'
 const today = () => { const date = new Date(); return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`; };
 const key = 'clearledger-v1';
 let month = today().slice(0,7), state, demo = true, blocked = false, view = 'overview', editId = null, search = '', filterCategory = '', filterType = '';
-let savedRaw = null;
-try { savedRaw = localStorage.getItem(key); if (savedRaw !== null) { state = validate(JSON.parse(savedRaw)); demo = false; } else state = sample(month); }
-catch { state = empty(); demo = false; blocked = true; showError('Your saved records could not be read. They have been left untouched. Download a recovery copy in Settings before repairing your browser storage.'); }
+let account = null, revision = 0, saving = false;
+state = sample(month);
+async function api(path, method = 'GET', body) {
+  const response = await fetch('/api/' + path, { method, headers: { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+  const result = await response.json();
+  if (!response.ok) throw Object.assign(Error(result.error), { status: response.status });
+  return result;
+}
+async function loadAccount() {
+  const ledger = await api('ledger');
+  state = validate(ledger.state); revision = ledger.revision; account = ledger.account; demo = false; blocked = false;
+  $('#notice').hidden = true; render();
+}
+function openAuth() { $('#auth-error').textContent = ''; $('#auth-dialog').showModal(); }
 $('#month').value = month;
 const money = value => new Intl.NumberFormat(undefined,{style:'currency',currency:state.currency}).format(value/100);
 const monthName = () => new Date(month+'-01T12:00:00').toLocaleDateString(undefined,{month:'long',year:'numeric'});
 function showError(message) { $('#notice').textContent = message; $('#notice').hidden = false; }
 function toast(message) { $('#toast').textContent = message; $('#toast').hidden = false; clearTimeout(toast.timer); toast.timer = setTimeout(() => $('#toast').hidden = true, 3500); }
-function commit(next) {
-  if (blocked) { showError('Saved data needs recovery. Open Settings to download the untouched records.'); return false; }
+async function commit(next) {
+  if (blocked || saving) { showError('A save is in progress or records need attention. Wait or reload before saving.'); return false; }
+  saving = true;
   try {
     validate(next);
-    if (!demo && localStorage.getItem(key) !== savedRaw) throw Error('Records changed in another tab. Reload this page before saving to avoid overwriting them.');
-    if (!demo) { const raw = JSON.stringify(next); localStorage.setItem(key, raw); savedRaw = raw; }
-    state = next; if (!demo) $('#save-status').textContent = 'Saved on this device'; return true;
-  } catch(error) { showError(error.message.includes('another tab') ? error.message : 'Could not save changes. Browser storage may be full or unavailable. Your previous records are unchanged. Export your records in Settings.'); return false; }
+    if (!demo) {
+      $('#save-status').textContent = 'Saving…';
+      const result = await api('ledger', 'PUT', { state: next, revision, account }); revision = result.revision;
+    }
+    state = next; return true;
+  } catch (error) {
+    if (error.status === 401 || error.status === 409) blocked = true;
+    showError(error.message || 'Could not save changes. Your previous records are unchanged.'); return false;
+  } finally { saving = false; $('#save-status').textContent = demo ? 'Exploring sample data' : blocked ? 'Reload required' : 'Saved to local database'; }
 }
 function ask(message) {
   return new Promise(resolve => { const dialog=$('#confirm-dialog'); $('#confirm-message').textContent=message; dialog.returnValue='cancel'; dialog.addEventListener('close',()=>resolve(dialog.returnValue==='confirm'),{once:true}); dialog.showModal(); });
 }
-async function personalStart() {
-  if (!await ask('Start your personal ledger? Sample transactions and budgets will be removed.')) return;
+async function importBrowserRecords() {
   try {
-    if (localStorage.getItem(key) !== null) throw Error('Records already exist in this browser. Reload to open them.');
-    const next = empty(); next.currency = state.currency; const raw = JSON.stringify(next); localStorage.setItem(key,raw); savedRaw = raw; state = next; demo = false; render(); toast('Your personal ledger is ready.');
-  } catch(error) { showError(error.message.includes('already exist') ? error.message : 'Could not start your ledger. Allow browser storage and try again.'); }
+    const raw = localStorage.getItem(key);
+    if (raw === null) throw Error('No legacy browser records were found at this address. Open the old app address to download a JSON backup.');
+    const next = validate(JSON.parse(raw));
+    if (revision !== 0) throw Error('Import is available only for a new, untouched account ledger.');
+    if (!await ask('Import this browser’s records into your account? The browser copy will remain untouched.')) return;
+    if (await commit(next)) { render(); toast('Browser records imported.'); }
+  } catch (error) { showError(error.message); }
 }
 function tag(category) { const index = categories.indexOf(category); return `<span class="category-tag">${icon(categoryIcon[index])}${escape(category)}</span>`; }
 function totalsHTML(totals) { return `<section class="summary" aria-label="Monthly totals"><div><p>Income</p><strong>${money(totals.income)}</strong></div><div><p>Expenses</p><strong>${money(totals.expenses)}</strong></div><div><p>Remaining</p><strong class="remaining">${money(totals.remaining)}</strong></div></section>`; }
@@ -56,12 +76,12 @@ function transactionsHTML(recent=false) {
 function budgetsHTML(totals) {
   return `<section class="panel budget-form"><h2>Plan your month</h2><p class="panel-intro">Set limits for ${escape(monthName())}. Leave a field blank for no budget.</p><form id="budget-form">${categories.map(c=>`<div class="budget-edit-row"><div><h3>${escape(c)}</h3><p>${money(totals.categories[c])} spent this month</p></div><label><span class="sr-only">${escape(c)} budget in ${state.currency}</span><input inputmode="decimal" name="${escape(c)}" placeholder="No limit" pattern="[0-9]+([.][0-9]{1,2})?" value="${state.budgets[month]?.[c]===undefined?'':(state.budgets[month][c]/100).toFixed(2)}"></label></div>`).join('')}<p id="budget-error" class="form-error" role="alert"></p><button class="primary" type="submit">Save budgets</button></form></section>`;
 }
-function settingsHTML() { return `<section class="panel settings-panel"><h2>Make it yours</h2><p>ClearLedger stores your records only in this browser. There’s no account to create and no financial data sent to a server.</p><label>Display currency<select id="currency">${currencies.map(c=>`<option ${state.currency===c?'selected':''}>${c}</option>`).join('')}</select></label><p>Changing currency changes the label on existing amounts. It does not convert them using exchange rates.</p><hr><h2>Your records, in your hands</h2><p>Export your transactions as CSV for a spreadsheet, or download a full JSON copy of your records and budgets. Keep a copy before clearing browser data.</p><div class="settings-actions"><button class="secondary" data-export>${icon('download')}Export CSV</button><button class="secondary" id="backup">Download full backup</button></div>${blocked?'<button class="secondary" id="recovery">Download recovery data</button>':''}<small>${demo?'You’re exploring sample data. Changes in sample mode are temporary.':'Records do not sync between browsers or devices.'}</small>${demo?'<hr><button class="primary" id="settings-start">Start my personal ledger</button>':''}</section>`; }
+function settingsHTML() { return `<section class="panel settings-panel"><h2>Make it yours</h2><p>${account ? 'Signed in as ' + escape(account) + '. Records are saved in SQLite on this computer.' : 'Explore sample data, or sign in to save a personal ledger on this computer.'}</p><label>Display currency<select id="currency">${currencies.map(c=>`<option ${state.currency===c?'selected':''}>${c}</option>`).join('')}</select></label><p>Changing currency changes the label on existing amounts. It does not convert them using exchange rates.</p><hr><h2>Your records, in your hands</h2><p>Export your transactions as CSV for a spreadsheet, or download a full JSON copy of your records and budgets. Keep a backup of your records and the local database.</p><div class="settings-actions"><button class="secondary" data-export>${icon('download')}Export CSV</button><button class="secondary" id="backup">Download full backup</button></div>${blocked?'<button class="secondary" id="recovery">Download recovery data</button>':''}<small>${demo?'You’re exploring sample data. Changes in sample mode are temporary.':'Your account is available through this local server. No cloud syncing.'}</small>${demo?'<hr><button class="primary" id="settings-start">Sign in or create account</button>':'<hr><button class="secondary" id="import-browser">Import legacy browser records</button><button class="secondary" id="sign-out">Sign out</button>'}</section>`; }
 function render() {
   const titles = {overview:['Your month, at a glance','A little clarity for your everyday spending.'],transactions:['Your transactions','Every entry brings a little more clarity.'],budgets:['A plan for your month','Spend with intention. Leave room for what matters.'],settings:['Your space, your settings','Simple preferences. Complete ownership.']};
   $('#page-title').textContent = titles[view][0]; $('#page-subtitle').textContent = titles[view][1];
   document.querySelectorAll('[data-view]').forEach(b=>{b.classList.toggle('active',b.dataset.view===view);b.setAttribute('aria-current',b.dataset.view===view?'page':'false');});
-  $('#demo-bar').hidden = !demo; $('#save-status').textContent = demo?'Exploring sample data':blocked?'Storage needs attention':'Saved on this device';
+  $('#demo-bar').hidden = !demo; $('#save-status').textContent = demo?'Exploring sample data':blocked?'Reload required':'Saved to local database';
   const totals=summary(state,month);
   $('#content').innerHTML = view==='settings'?settingsHTML():totalsHTML(totals)+(view==='overview'?`<div class="overview-grid">${breakdown(totals)}<section class="panel"><h2>Monthly budget</h2><p class="panel-intro">Your spending against this month’s budgets.</p>${budgetItems(totals)}<button class="primary wide" data-go="budgets">${icon('edit')}Edit budgets</button></section></div>`+transactionsHTML(true):view==='transactions'?transactionsHTML():budgetsHTML(totals));
   $('#add').disabled = blocked; if ($('#currency')) $('#currency').disabled = blocked;
@@ -77,35 +97,53 @@ function openEditor(id) {
   $('#editor').showModal(); form.elements.description.focus();
 }
 function download(text,name,type) { const url=URL.createObjectURL(new Blob([text],{type})); const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000); }
-document.addEventListener('click',event=>{
+document.addEventListener('click',async event=>{
   const button=event.target.closest('button'); if(!button)return;
   if(button.dataset.view)navigate(button.dataset.view);
   if(button.dataset.go)navigate(button.dataset.go);
   if(button.matches('#add,[data-add]'))openEditor();
   if(button.dataset.edit)openEditor(button.dataset.edit);
   if(button.hasAttribute('data-close'))$('#editor').close();
-  if(button.matches('#start-fresh,#settings-start'))personalStart();
+  if(button.matches('#start-fresh,#settings-start'))openAuth();
   if(button.hasAttribute('data-export'))download(csv(state),'clearledger-transactions.csv','text/csv;charset=utf-8');
+  if(button.id==='import-browser') await importBrowserRecords();
+  if(button.id==='sign-out') { if (saving) return; try { await api('logout', 'POST', {}); location.reload(); } catch(error) { showError(error.message); } }
   if(button.id==='backup')download(JSON.stringify(state,null,2),'clearledger-backup.json','application/json');
   if(button.id==='recovery') { try {download(localStorage.getItem(key)||'','clearledger-recovery.txt','text/plain');}catch{showError('Browser storage is unavailable. Allow storage access and reload.');} }
 });
 $('.brand').addEventListener('click',()=>navigate('overview'));
 $('#month').addEventListener('change',()=>{const value=$('#month').value;if(!/^\d{4}-\d{2}$/.test(value))return;month=value;render();});
-document.addEventListener('change',event=>{
+document.addEventListener('change',async event=>{
   if(event.target.id==='category-filter'){filterCategory=event.target.value;render();}
   if(event.target.id==='type-filter'){filterType=event.target.value;render();}
-  if(event.target.id==='currency'){const next=structuredClone(state);next.currency=event.target.value;if(commit(next)){render();toast('Display currency updated.');}else event.target.value=state.currency;}
+  if(event.target.id==='currency'){const next=structuredClone(state);next.currency=event.target.value;if(await commit(next)){render();toast('Display currency updated.');}else event.target.value=state.currency;}
 });
 document.addEventListener('input',event=>{if(event.target.id==='search'){search=event.target.value;const cursor=event.target.selectionStart;render();$('#search').focus();$('#search').setSelectionRange(cursor,cursor);}});
-$('#transaction-form').addEventListener('submit',event=>{
+$('#transaction-form').addEventListener('submit',async event=>{
   event.preventDefault(); const form=event.target;
   try {
     const record={id:editId||crypto.randomUUID(),description:form.elements.description.value.trim(),amount:amount(form.elements.amount.value),date:form.elements.date.value,type:form.elements.type.value,category:form.elements.category.value};
     const next=structuredClone(state);if(editId)next.transactions[next.transactions.findIndex(t=>t.id===editId)]=record;else next.transactions.push(record);validate(next);
-    if(commit(next)){$('#editor').close();month=record.date.slice(0,7);$('#month').value=month;render();toast(demo?'Sample transaction saved temporarily.':editId?'Transaction updated.':'Transaction added.');}else $('#form-error').textContent='Changes were not saved. Check the storage notice after closing this form.';
+    if(await commit(next)){$('#editor').close();month=record.date.slice(0,7);$('#month').value=month;render();toast(demo?'Sample transaction saved temporarily.':editId?'Transaction updated.':'Transaction added.');}else $('#form-error').textContent='Changes were not saved. Check the storage notice after closing this form.';
   }catch(error){$('#form-error').textContent=error.message;}
 });
-$('#delete').addEventListener('click',async()=>{if(!await ask('Delete this transaction? This cannot be undone.'))return;const next=structuredClone(state);next.transactions=next.transactions.filter(t=>t.id!==editId);if(commit(next)){$('#editor').close();render();toast('Transaction deleted.');}});
-document.addEventListener('submit',event=>{if(event.target.id!=='budget-form')return;event.preventDefault();try{const budgets={};for(const c of categories){const value=event.target.elements.namedItem(c).value.trim();if(value!=='')budgets[c]=amount(value,true);}const next=structuredClone(state);next.budgets[month]=budgets;if(commit(next)){render();toast(demo?'Sample budgets saved temporarily.':'Budgets saved.');}}catch(error){$('#budget-error').textContent=error.message;}});
-window.addEventListener('storage',event=>{if(event.key===key){blocked=true;showError('Records changed in another tab. Reload to open the latest records before making changes.');render();}});
+$('#delete').addEventListener('click',async()=>{if(!await ask('Delete this transaction? This cannot be undone.'))return;const next=structuredClone(state);next.transactions=next.transactions.filter(t=>t.id!==editId);if(await commit(next)){$('#editor').close();render();toast('Transaction deleted.');}});
+document.addEventListener('submit',async event=>{if(event.target.id!=='budget-form')return;event.preventDefault();try{const budgets={};for(const c of categories){const value=event.target.elements.namedItem(c).value.trim();if(value!=='')budgets[c]=amount(value,true);}const next=structuredClone(state);next.budgets[month]=budgets;if(await commit(next)){render();toast(demo?'Sample budgets saved temporarily.':'Budgets saved.');}}catch(error){$('#budget-error').textContent=error.message;}});
+$('#auth-form').addEventListener('submit', async event => {
+  event.preventDefault(); const form = event.target; const button = event.submitter;
+  if (form.dataset.busy) return;
+  form.dataset.busy = 'true'; form.querySelectorAll('button').forEach(control => control.disabled = true); $('#auth-error').textContent = '';
+  try {
+    await api(button.value, 'POST', { email: form.elements.email.value, password: form.elements.password.value });
+    await loadAccount(); form.reset(); $('#auth-dialog').close(); toast('Your personal ledger is ready.');
+  } catch (error) { $('#auth-error').textContent = error.message; }
+  finally { delete form.dataset.busy; form.querySelectorAll('button').forEach(control => control.disabled = false); }
+});
+$('#auth-cancel').addEventListener('click', () => $('#auth-dialog').close());
 render();
+$('#add').disabled = true;
+try { await loadAccount(); }
+catch (error) {
+  if (error.status !== 401) { blocked = true; showError('Could not connect to your local database. Start the app with npm start, then reload.'); }
+  render();
+}

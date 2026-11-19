@@ -8,7 +8,7 @@ web
 
 ## Stack
 
-Plain HTML, CSS, and JavaScript; browser localStorage. Approved in SPEC.md.
+Plain HTML, CSS, and JavaScript, with a local Node.js server and SQLite.
 
 ## Users
 
@@ -20,7 +20,7 @@ Make monthly spending and remaining category budgets clear, with quick transacti
 
 ## Capabilities and Constraints
 
-Browser-saved records, monthly summaries, category budgets, searchable transactions, CSV export, and clearly labeled sample data. No bank connection or cloud syncing. USD is the initial currency; PHP, EUR, and GBP are available without conversion. Local-only development and previews. Do not use Sites or deploy automatically.
+Account-scoped SQLite records, monthly summaries, category budgets, searchable transactions, CSV export, and clearly labeled sample data. No bank connection or cloud syncing. USD is the initial currency; PHP, EUR, and GBP are available without conversion. Local-only development and previews. Do not use Sites or deploy automatically.
 
 ## Evidence on Hand
 
@@ -29,5 +29,5 @@ No personal financial records were supplied. All sample transactions must be lab
 ## Product Principles
 
 - Financial calculations use integer minor units.
-- Keep user records in the browser and make storage failures visible.
+- Keep user records on the local server and make save failures visible.
 - Optimize for daily entry and monthly review on phone and desktop.

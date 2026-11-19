@@ -1,4 +1,5 @@
 outputs/
 .env
+data/
 node_modules/
 .impeccable/review/

@@ -1,5 +1,22 @@
 # ClearLedger — Personal Expense & Budget Tracker V1
 
+Status: V1 browser-only scope below is historical. Superseded for authentication and persistence by the user’s November 19, 2026 request.
+
+## Local accounts and persistence update
+
+Confirmed: local server with SQLite and email/password accounts. Keep the existing interface and financial model. Never deploy automatically.
+
+- Node.js 22.18+ serves the app and same-origin API on loopback. `npm start`; `npm test`. No build step or external packages.
+- Register/sign in, persistent seven-day HTTP-only sessions, sign out, and one isolated ledger per account.
+- SQLite stores accounts, password hashes with unique salts, hashed session tokens, and validated ledger snapshots with revisions.
+- Transactions, budgets, and currency save through authenticated API requests. Reject stale saves and account switches; do not replace UI state after a failed write.
+- Preserve legacy browser storage. Offer an explicit, confirmed import into an untouched account ledger at the same origin. Samples never migrate automatically.
+- Validate request bodies, enforce ownership, reject foreign origins, limit request size and auth attempts, and serve only allowlisted static files.
+- Verify account isolation, login/logout, invalid inputs, conflict rejection, and persistence across server restart; verify signup/save/reload in a browser.
+- Email verification, password recovery, cloud syncing, bank connections, and hosting are outside this update.
+
+---
+
 Status: approved by the user on November 19, 2026
 
 ## Objective

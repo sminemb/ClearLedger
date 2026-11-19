@@ -1,3 +1,10 @@
+# Local authentication update — November 19, 2026
+
+- `node --test`: 5 passing tests, including an HTTP/SQLite integration test for account isolation, hashed password storage, Unicode data, conflict rejection, changed-account rejection, expired sessions, logout, auth throttling, and persistence across server restart.
+- Browser verification used an isolated database: created an account, saved a transaction, reloaded, saved a budget and currency, signed out, and signed back in. The transaction, budget, and currency returned correctly.
+- Legacy browser import was reviewed in source; it was not exercised against personal browser data. No hosting or cloud service was used.
+- Earlier verification notes below describe the previous browser-storage version.
+
 # V1 verification
 
 - `node --test`: four passing cases covering exact money parsing, month and category totals, restored-data validation, and safe CSV cells.
