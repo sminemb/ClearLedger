@@ -30,6 +30,7 @@ function toast(message) { $('#toast').textContent = message; $('#toast').hidden 
 async function commit(next) {
   if (blocked || saving) { showError('A save is in progress or records need attention. Wait or reload before saving.'); return false; }
   saving = true;
+  for (const control of $('#transaction-form').elements) control.disabled = true;
   try {
     validate(next);
     if (!demo) {
@@ -40,7 +41,11 @@ async function commit(next) {
   } catch (error) {
     if (error.status === 401 || error.status === 409) blocked = true;
     showError(error.message || 'Could not save changes. Your previous records are unchanged.'); return false;
-  } finally { saving = false; $('#save-status').textContent = demo ? 'Exploring sample data' : blocked ? 'Reload required' : 'Saved to local database'; }
+  } finally {
+    saving = false;
+    for (const control of $('#transaction-form').elements) control.disabled = false;
+    $('#save-status').textContent = demo ? 'Exploring sample data' : blocked ? 'Reload required' : 'Saved to local database';
+  }
 }
 function ask(message) {
   return new Promise(resolve => { const dialog=$('#confirm-dialog'); $('#confirm-message').textContent=message; dialog.returnValue='cancel'; dialog.addEventListener('close',()=>resolve(dialog.returnValue==='confirm'),{once:true}); dialog.showModal(); });
@@ -88,6 +93,7 @@ function render() {
 }
 function navigate(next) { view=next; render(); }
 function openEditor(id) {
+  if (saving) return;
   editId = id || null; const form=$('#transaction-form'); form.reset();
   $('#editor-title').textContent = id?'Edit transaction':'Add transaction'; $('#delete').hidden = !id; $('#form-error').textContent='';
   form.elements.category.innerHTML = categories.map(c=>`<option>${escape(c)}</option>`).join('');
@@ -103,7 +109,7 @@ document.addEventListener('click',async event=>{
   if(button.dataset.go)navigate(button.dataset.go);
   if(button.matches('#add,[data-add]'))openEditor();
   if(button.dataset.edit)openEditor(button.dataset.edit);
-  if(button.hasAttribute('data-close'))$('#editor').close();
+  if(button.hasAttribute('data-close') && !saving)$('#editor').close();
   if(button.matches('#start-fresh,#settings-start'))openAuth();
   if(button.hasAttribute('data-export'))download(csv(state),'clearledger-transactions.csv','text/csv;charset=utf-8');
   if(button.id==='import-browser') await importBrowserRecords();
@@ -119,8 +125,10 @@ document.addEventListener('change',async event=>{
   if(event.target.id==='currency'){const next=structuredClone(state);next.currency=event.target.value;if(await commit(next)){render();toast('Display currency updated.');}else event.target.value=state.currency;}
 });
 document.addEventListener('input',event=>{if(event.target.id==='search'){search=event.target.value;const cursor=event.target.selectionStart;render();$('#search').focus();$('#search').setSelectionRange(cursor,cursor);}});
+$('#editor').addEventListener('cancel', event => { if (saving) event.preventDefault(); });
 $('#transaction-form').addEventListener('submit',async event=>{
   event.preventDefault(); const form=event.target;
+  if (saving) return;
   try {
     const record={id:editId||crypto.randomUUID(),description:form.elements.description.value.trim(),amount:amount(form.elements.amount.value),date:form.elements.date.value,type:form.elements.type.value,category:form.elements.category.value};
     const next=structuredClone(state);if(editId)next.transactions[next.transactions.findIndex(t=>t.id===editId)]=record;else next.transactions.push(record);validate(next);

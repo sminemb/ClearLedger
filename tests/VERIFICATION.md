@@ -1,3 +1,9 @@
+# Transaction editor save guard — November 19, 2026
+
+- `npm test`: all 7 tests passed. The new delayed-response regression failed before the fix when Cancel closed a saving editor; it now covers close/Escape guards, reopening, repeated submit, control locking, successful completion, and failed-save retry with the draft preserved.
+- Headless Chromium with an isolated in-memory SQLite database: delayed create, update, and delete kept the editor locked; Escape was blocked during saves and worked afterward. A newer draft remained open, and a failed update preserved its values for retry. Reload confirmed the retried update persisted. No unexpected browser errors were captured.
+- `node --check dist/app.js` and `git diff --check`: passed. No dependencies were added. Firefox and Safari were not checked.
+
 # Local authentication update — November 19, 2026
 
 - `node --test`: 5 passing tests, including an HTTP/SQLite integration test for account isolation, hashed password storage, Unicode data, conflict rejection, changed-account rejection, expired sessions, logout, auth throttling, and persistence across server restart.
