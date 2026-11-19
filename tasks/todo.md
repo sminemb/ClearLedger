@@ -1,0 +1,4 @@
+- [x] Validated model and tests
+- [x] Responsive app and persistence
+- [x] Browser verification (review in progress)
+- [ ] Private publication

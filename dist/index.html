@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#233326"><meta name="description" content="A little clarity for your everyday spending. Track personal expenses and monthly budgets, saved on your device."><title>ClearLedger — Your personal budget</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23233326'/%3E%3Cpath d='M8 25C3 10 17 6 26 5c0 13-5 21-18 20' fill='%23bfe47b'/%3E%3C/svg%3E"><link rel="stylesheet" href="styles.css"><script type="module" src="app.js"></script></head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<aside class="sidebar">
+  <a class="brand" href="#overview"><svg viewBox="0 0 36 36" aria-hidden="true"><path d="M8 30C-1 13 15 7 32 4c0 17-6 29-24 26Z" fill="currentColor"/><path d="M9 29c4-9 9-14 16-18" fill="none" stroke="#233326" stroke-width="2"/></svg>ClearLedger</a>
+  <nav aria-label="Main navigation"><button data-view="overview" class="active"><span data-icon="home"></span>Overview</button><button data-view="transactions"><span data-icon="list"></span>Transactions</button><button data-view="budgets"><span data-icon="chart"></span>Budgets</button></nav>
+  <div class="sidebar-bottom"><div class="habit">Small steps.<br>Better habits.<span>Make room for what matters.</span></div><button data-view="settings"><span data-icon="settings"></span>Settings</button><p class="device"><span data-icon="check"></span><span id="save-status">Saved on this device</span></p></div>
+</aside>
+<main id="main">
+  <header class="page-header"><div><h1 id="page-title">Your month, at a glance</h1><p id="page-subtitle">A little clarity for your everyday spending.</p></div><div class="header-actions"><label class="month-control"><span class="sr-only">Select month</span><input type="month" id="month" min="1900-01" max="9999-12"></label><button class="primary" id="add"><span data-icon="plus"></span>Add transaction</button></div></header>
+  <div id="notice" role="alert" hidden></div>
+  <div class="demo-bar" id="demo-bar"><span><span class="badge">Sample data</span> Take a look around. Your personal ledger starts fresh.</span><button id="start-fresh">Start fresh<span data-icon="refresh"></span></button></div>
+  <div id="content"></div>
+  <footer>Your money, a little clearer.<span>Private to this browser. No bank connection.</span></footer>
+</main>
+<dialog id="editor" aria-labelledby="editor-title"><form id="transaction-form"><div class="dialog-heading"><div><h2 id="editor-title">Add transaction</h2><p>A small entry. A clearer picture.</p></div><button type="button" class="icon-button" data-close aria-label="Close transaction form"><span data-icon="close"></span></button></div><div class="type-toggle"><label><input type="radio" name="type" value="expense" checked>Expense</label><label><input type="radio" name="type" value="income">Income</label></div><label>Description<input name="description" maxlength="160" required placeholder="What was it for?" autocomplete="off"></label><div class="form-grid"><label>Amount <span class="currency-label"></span><input name="amount" inputmode="decimal" required placeholder="0.00" pattern="[0-9]+([.][0-9]{1,2})?"></label><label>Date<input name="date" type="date" min="1900-01-01" max="9999-12-31" required></label></div><label>Category<select name="category" required></select></label><p class="form-error" id="form-error" role="alert"></p><div class="dialog-actions"><button type="button" class="danger" id="delete" hidden>Delete transaction</button><button type="button" data-close class="secondary">Cancel</button><button type="submit" class="primary">Save transaction</button></div></form></dialog>
+<dialog id="confirm-dialog" aria-labelledby="confirm-title"><form method="dialog"><h2 id="confirm-title">Please confirm</h2><p id="confirm-message" class="panel-intro"></p><div class="dialog-actions"><button value="cancel" class="secondary" autofocus>Cancel</button><button value="confirm" class="primary">Confirm</button></div></form></dialog>
+<div class="toast" id="toast" role="status" hidden></div>
+<noscript><p>Please enable JavaScript to use ClearLedger. All financial records stay in your browser.</p></noscript>
+</body></html>
