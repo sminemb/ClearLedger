@@ -20,7 +20,7 @@ Make monthly spending and remaining category budgets clear, with quick transacti
 
 ## Capabilities and Constraints
 
-Browser-saved records, monthly summaries, category budgets, searchable transactions, CSV export, and clearly labeled sample data. No bank connection or cloud syncing. USD is the initial currency; PHP, EUR, and GBP are available without conversion. Private static hosting.
+Browser-saved records, monthly summaries, category budgets, searchable transactions, CSV export, and clearly labeled sample data. No bank connection or cloud syncing. USD is the initial currency; PHP, EUR, and GBP are available without conversion. Local-only development and previews. Do not use Sites or deploy automatically.
 
 ## Evidence on Hand
 

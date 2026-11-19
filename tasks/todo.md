@@ -1,4 +1,4 @@
 - [x] Validated model and tests
 - [x] Responsive app and persistence
 - [x] Browser verification and review (all five requested fixes resolved)
-- [x] Private publication package prepared; deployment outcome is tracked by Sites
+- [x] Local-only instruction recorded; no further Sites uploads or deployments

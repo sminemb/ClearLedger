@@ -24,7 +24,7 @@ Proposed defaults: the working name is ClearLedger; currency initially uses USD 
 
 Proposed: plain HTML, CSS, and JavaScript using browser localStorage, with no runtime dependencies. This fits the confirmed browser-saved scope. The user may request a framework before implementation.
 
-Publish as a private static Site. The private hosting gate and the browser's local data storage are separate: records stay in the browser used to enter them.
+Keep this project local. Do not use Sites or publish automatically. Deployment requires a new explicit request from the user. Records stay in the browser used to enter them.
 
 ## Commands
 
@@ -39,7 +39,7 @@ Publish as a private static Site. The private hosting gate and the browser's loc
 - `dist/app.js`: UI, browser persistence, and exports.
 - `dist/model.mjs`: validated transaction data and financial calculations.
 - `tests/model.test.mjs`: focused checks for data and calculations.
-- `.openai/hosting.json`: private Site identity and static hosting configuration.
+- `.openai/hosting.json`: legacy identity for the earlier Sites publication; retained for reference only, not authorization to publish.
 
 Use native form controls, named JavaScript functions, and authored SVG icons. Reuse the same calculation and validation functions across forms, summaries, and export. Store monetary amounts as integer minor units to avoid floating-point rounding errors.
 
