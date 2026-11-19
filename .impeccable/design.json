@@ -1,1 +1,533 @@
-{"schemaVersion":1,"colors":{"canvas":"#F5F6F2","panel":"#FFFFFF","text":"#263329","muted":"#5E685B","navigation":"#233326","primary":"#C4E77F"},"typography":{"family":"DM Sans","body":"16px","heading":"32px"},"rounded":{"panel":"14px","control":"9px"},"spacing":{"base":"4px","panel":"24px","gap":"22px"},"extensions":{"approvedComp":".impeccable/mocks/overview-a.png","responsive":"760px mobile navigation; stacked financial totals and panels"}}
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-19T06:02:23.694203+00:00",
+  "title": "Design System: ClearLedger",
+  "extensions": {
+    "colorMeta": {
+      "olive": {
+        "role": "primary",
+        "displayName": "Olive",
+        "tonalRamp": [
+          "oklch(15% 0.0315 149.9)",
+          "oklch(27% 0.0315 149.9)",
+          "oklch(39% 0.0315 149.9)",
+          "oklch(51% 0.0315 149.9)",
+          "oklch(63% 0.0315 149.9)",
+          "oklch(75% 0.0315 149.9)",
+          "oklch(87% 0.0315 149.9)",
+          "oklch(95% 0.0315 149.9)"
+        ]
+      },
+      "lime": {
+        "role": "primary",
+        "displayName": "Lime",
+        "tonalRamp": [
+          "oklch(15% 0.1365 124.4)",
+          "oklch(27% 0.1365 124.4)",
+          "oklch(39% 0.1365 124.4)",
+          "oklch(51% 0.1365 124.4)",
+          "oklch(63% 0.1365 124.4)",
+          "oklch(75% 0.1365 124.4)",
+          "oklch(87% 0.1365 124.4)",
+          "oklch(95% 0.1365 124.4)"
+        ]
+      },
+      "lime-hover": {
+        "role": "primary",
+        "displayName": "Lime Hover",
+        "tonalRamp": [
+          "oklch(15% 0.1384 123.7)",
+          "oklch(27% 0.1384 123.7)",
+          "oklch(39% 0.1384 123.7)",
+          "oklch(51% 0.1384 123.7)",
+          "oklch(63% 0.1384 123.7)",
+          "oklch(75% 0.1384 123.7)",
+          "oklch(87% 0.1384 123.7)",
+          "oklch(95% 0.1384 123.7)"
+        ]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Canvas",
+        "tonalRamp": [
+          "oklch(15% 0.0054 117.9)",
+          "oklch(27% 0.0054 117.9)",
+          "oklch(39% 0.0054 117.9)",
+          "oklch(51% 0.0054 117.9)",
+          "oklch(63% 0.0054 117.9)",
+          "oklch(75% 0.0054 117.9)",
+          "oklch(87% 0.0054 117.9)",
+          "oklch(95% 0.0054 117.9)"
+        ]
+      },
+      "panel": {
+        "role": "neutral",
+        "displayName": "Panel",
+        "tonalRamp": [
+          "oklch(15% 0.0000 89.9)",
+          "oklch(27% 0.0000 89.9)",
+          "oklch(39% 0.0000 89.9)",
+          "oklch(51% 0.0000 89.9)",
+          "oklch(63% 0.0000 89.9)",
+          "oklch(75% 0.0000 89.9)",
+          "oklch(87% 0.0000 89.9)",
+          "oklch(95% 0.0000 89.9)"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Text",
+        "tonalRamp": [
+          "oklch(15% 0.0250 151.7)",
+          "oklch(27% 0.0250 151.7)",
+          "oklch(39% 0.0250 151.7)",
+          "oklch(51% 0.0250 151.7)",
+          "oklch(63% 0.0250 151.7)",
+          "oklch(75% 0.0250 151.7)",
+          "oklch(87% 0.0250 151.7)",
+          "oklch(95% 0.0250 151.7)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted",
+        "tonalRamp": [
+          "oklch(15% 0.0236 138.5)",
+          "oklch(27% 0.0236 138.5)",
+          "oklch(39% 0.0236 138.5)",
+          "oklch(51% 0.0236 138.5)",
+          "oklch(63% 0.0236 138.5)",
+          "oklch(75% 0.0236 138.5)",
+          "oklch(87% 0.0236 138.5)",
+          "oklch(95% 0.0236 138.5)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Line",
+        "tonalRamp": [
+          "oklch(15% 0.0115 128.6)",
+          "oklch(27% 0.0115 128.6)",
+          "oklch(39% 0.0115 128.6)",
+          "oklch(51% 0.0115 128.6)",
+          "oklch(63% 0.0115 128.6)",
+          "oklch(75% 0.0115 128.6)",
+          "oklch(87% 0.0115 128.6)",
+          "oklch(95% 0.0115 128.6)"
+        ]
+      },
+      "navigation-text": {
+        "role": "secondary",
+        "displayName": "Navigation Text",
+        "tonalRamp": [
+          "oklch(15% 0.0160 130.4)",
+          "oklch(27% 0.0160 130.4)",
+          "oklch(39% 0.0160 130.4)",
+          "oklch(51% 0.0160 130.4)",
+          "oklch(63% 0.0160 130.4)",
+          "oklch(75% 0.0160 130.4)",
+          "oklch(87% 0.0160 130.4)",
+          "oklch(95% 0.0160 130.4)"
+        ]
+      },
+      "navigation-hover": {
+        "role": "secondary",
+        "displayName": "Navigation Hover",
+        "tonalRamp": [
+          "oklch(15% 0.0413 143.5)",
+          "oklch(27% 0.0413 143.5)",
+          "oklch(39% 0.0413 143.5)",
+          "oklch(51% 0.0413 143.5)",
+          "oklch(63% 0.0413 143.5)",
+          "oklch(75% 0.0413 143.5)",
+          "oklch(87% 0.0413 143.5)",
+          "oklch(95% 0.0413 143.5)"
+        ]
+      },
+      "navigation-active": {
+        "role": "secondary",
+        "displayName": "Navigation Active",
+        "tonalRamp": [
+          "oklch(15% 0.0792 128.0)",
+          "oklch(27% 0.0792 128.0)",
+          "oklch(39% 0.0792 128.0)",
+          "oklch(51% 0.0792 128.0)",
+          "oklch(63% 0.0792 128.0)",
+          "oklch(75% 0.0792 128.0)",
+          "oklch(87% 0.0792 128.0)",
+          "oklch(95% 0.0792 128.0)"
+        ]
+      },
+      "positive": {
+        "role": "secondary",
+        "displayName": "Positive",
+        "tonalRamp": [
+          "oklch(15% 0.0889 132.6)",
+          "oklch(27% 0.0889 132.6)",
+          "oklch(39% 0.0889 132.6)",
+          "oklch(51% 0.0889 132.6)",
+          "oklch(63% 0.0889 132.6)",
+          "oklch(75% 0.0889 132.6)",
+          "oklch(87% 0.0889 132.6)",
+          "oklch(95% 0.0889 132.6)"
+        ]
+      },
+      "negative": {
+        "role": "secondary",
+        "displayName": "Negative",
+        "tonalRamp": [
+          "oklch(15% 0.1372 34.4)",
+          "oklch(27% 0.1372 34.4)",
+          "oklch(39% 0.1372 34.4)",
+          "oklch(51% 0.1372 34.4)",
+          "oklch(63% 0.1372 34.4)",
+          "oklch(75% 0.1372 34.4)",
+          "oklch(87% 0.1372 34.4)",
+          "oklch(95% 0.1372 34.4)"
+        ]
+      },
+      "focus": {
+        "role": "secondary",
+        "displayName": "Focus",
+        "tonalRamp": [
+          "oklch(15% 0.1099 126.7)",
+          "oklch(27% 0.1099 126.7)",
+          "oklch(39% 0.1099 126.7)",
+          "oklch(51% 0.1099 126.7)",
+          "oklch(63% 0.1099 126.7)",
+          "oklch(75% 0.1099 126.7)",
+          "oklch(87% 0.1099 126.7)",
+          "oklch(95% 0.1099 126.7)"
+        ]
+      },
+      "budget-fill": {
+        "role": "secondary",
+        "displayName": "Budget Fill",
+        "tonalRamp": [
+          "oklch(15% 0.1240 124.1)",
+          "oklch(27% 0.1240 124.1)",
+          "oklch(39% 0.1240 124.1)",
+          "oklch(51% 0.1240 124.1)",
+          "oklch(63% 0.1240 124.1)",
+          "oklch(75% 0.1240 124.1)",
+          "oklch(87% 0.1240 124.1)",
+          "oklch(95% 0.1240 124.1)"
+        ]
+      },
+      "budget-over": {
+        "role": "secondary",
+        "displayName": "Budget Over",
+        "tonalRamp": [
+          "oklch(15% 0.1262 36.5)",
+          "oklch(27% 0.1262 36.5)",
+          "oklch(39% 0.1262 36.5)",
+          "oklch(51% 0.1262 36.5)",
+          "oklch(63% 0.1262 36.5)",
+          "oklch(75% 0.1262 36.5)",
+          "oklch(87% 0.1262 36.5)",
+          "oklch(95% 0.1262 36.5)"
+        ]
+      },
+      "budget-track": {
+        "role": "secondary",
+        "displayName": "Budget Track",
+        "tonalRamp": [
+          "oklch(15% 0.0111 123.5)",
+          "oklch(27% 0.0111 123.5)",
+          "oklch(39% 0.0111 123.5)",
+          "oklch(51% 0.0111 123.5)",
+          "oklch(63% 0.0111 123.5)",
+          "oklch(75% 0.0111 123.5)",
+          "oklch(87% 0.0111 123.5)",
+          "oklch(95% 0.0111 123.5)"
+        ]
+      },
+      "field-line": {
+        "role": "neutral",
+        "displayName": "Field Line",
+        "tonalRamp": [
+          "oklch(15% 0.0221 130.0)",
+          "oklch(27% 0.0221 130.0)",
+          "oklch(39% 0.0221 130.0)",
+          "oklch(51% 0.0221 130.0)",
+          "oklch(63% 0.0221 130.0)",
+          "oklch(75% 0.0221 130.0)",
+          "oklch(87% 0.0221 130.0)",
+          "oklch(95% 0.0221 130.0)"
+        ]
+      },
+      "badge-bg": {
+        "role": "secondary",
+        "displayName": "Badge Bg",
+        "tonalRamp": [
+          "oklch(15% 0.0232 120.2)",
+          "oklch(27% 0.0232 120.2)",
+          "oklch(39% 0.0232 120.2)",
+          "oklch(51% 0.0232 120.2)",
+          "oklch(63% 0.0232 120.2)",
+          "oklch(75% 0.0232 120.2)",
+          "oklch(87% 0.0232 120.2)",
+          "oklch(95% 0.0232 120.2)"
+        ]
+      },
+      "badge-text": {
+        "role": "secondary",
+        "displayName": "Badge Text",
+        "tonalRamp": [
+          "oklch(15% 0.0608 130.3)",
+          "oklch(27% 0.0608 130.3)",
+          "oklch(39% 0.0608 130.3)",
+          "oklch(51% 0.0608 130.3)",
+          "oklch(63% 0.0608 130.3)",
+          "oklch(75% 0.0608 130.3)",
+          "oklch(87% 0.0608 130.3)",
+          "oklch(95% 0.0608 130.3)"
+        ]
+      },
+      "tag-bg": {
+        "role": "neutral",
+        "displayName": "Tag Bg",
+        "tonalRamp": [
+          "oklch(15% 0.0093 100.0)",
+          "oklch(27% 0.0093 100.0)",
+          "oklch(39% 0.0093 100.0)",
+          "oklch(51% 0.0093 100.0)",
+          "oklch(63% 0.0093 100.0)",
+          "oklch(75% 0.0093 100.0)",
+          "oklch(87% 0.0093 100.0)",
+          "oklch(95% 0.0093 100.0)"
+        ]
+      },
+      "housing": {
+        "role": "secondary",
+        "displayName": "Housing",
+        "tonalRamp": [
+          "oklch(15% 0.1261 38.2)",
+          "oklch(27% 0.1261 38.2)",
+          "oklch(39% 0.1261 38.2)",
+          "oklch(51% 0.1261 38.2)",
+          "oklch(63% 0.1261 38.2)",
+          "oklch(75% 0.1261 38.2)",
+          "oklch(87% 0.1261 38.2)",
+          "oklch(95% 0.1261 38.2)"
+        ]
+      },
+      "food-dining": {
+        "role": "secondary",
+        "displayName": "Food Dining",
+        "tonalRamp": [
+          "oklch(15% 0.1221 71.7)",
+          "oklch(27% 0.1221 71.7)",
+          "oklch(39% 0.1221 71.7)",
+          "oklch(51% 0.1221 71.7)",
+          "oklch(63% 0.1221 71.7)",
+          "oklch(75% 0.1221 71.7)",
+          "oklch(87% 0.1221 71.7)",
+          "oklch(95% 0.1221 71.7)"
+        ]
+      },
+      "shopping": {
+        "role": "secondary",
+        "displayName": "Shopping",
+        "tonalRamp": [
+          "oklch(15% 0.1059 90.8)",
+          "oklch(27% 0.1059 90.8)",
+          "oklch(39% 0.1059 90.8)",
+          "oklch(51% 0.1059 90.8)",
+          "oklch(63% 0.1059 90.8)",
+          "oklch(75% 0.1059 90.8)",
+          "oklch(87% 0.1059 90.8)",
+          "oklch(95% 0.1059 90.8)"
+        ]
+      },
+      "transport": {
+        "role": "secondary",
+        "displayName": "Transport",
+        "tonalRamp": [
+          "oklch(15% 0.0777 124.8)",
+          "oklch(27% 0.0777 124.8)",
+          "oklch(39% 0.0777 124.8)",
+          "oklch(51% 0.0777 124.8)",
+          "oklch(63% 0.0777 124.8)",
+          "oklch(75% 0.0777 124.8)",
+          "oklch(87% 0.0777 124.8)",
+          "oklch(95% 0.0777 124.8)"
+        ]
+      },
+      "entertainment": {
+        "role": "secondary",
+        "displayName": "Entertainment",
+        "tonalRamp": [
+          "oklch(15% 0.0736 133.5)",
+          "oklch(27% 0.0736 133.5)",
+          "oklch(39% 0.0736 133.5)",
+          "oklch(51% 0.0736 133.5)",
+          "oklch(63% 0.0736 133.5)",
+          "oklch(75% 0.0736 133.5)",
+          "oklch(87% 0.0736 133.5)",
+          "oklch(95% 0.0736 133.5)"
+        ]
+      },
+      "other": {
+        "role": "secondary",
+        "displayName": "Other",
+        "tonalRamp": [
+          "oklch(15% 0.0248 99.2)",
+          "oklch(27% 0.0248 99.2)",
+          "oklch(39% 0.0248 99.2)",
+          "oklch(51% 0.0248 99.2)",
+          "oklch(63% 0.0248 99.2)",
+          "oklch(75% 0.0248 99.2)",
+          "oklch(87% 0.0248 99.2)",
+          "oklch(95% 0.0248 99.2)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "total": {
+        "displayName": "Financial total",
+        "purpose": "Summary money values; tabular numerals."
+      }
+    },
+    "shadows": [
+      {
+        "name": "dialog",
+        "value": "0 20px 80px #17221433",
+        "purpose": "Temporary modal surface."
+      },
+      {
+        "name": "toast",
+        "value": "0 5px 22px #18231b22",
+        "purpose": "Temporary save and action feedback."
+      }
+    ],
+    "motion": [
+      {
+        "name": "button-background",
+        "value": "background .15s",
+        "purpose": "Calm hover feedback."
+      },
+      {
+        "name": "dialog-open",
+        "value": ".2s cubic-bezier(.16,1,.3,1)",
+        "purpose": "Opening motion only when reduced motion is not requested."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "small-phone",
+        "value": "380px"
+      },
+      {
+        "name": "mobile",
+        "value": "760px"
+      },
+      {
+        "name": "compact-desktop",
+        "value": "1200px"
+      },
+      {
+        "name": "wide-desktop",
+        "value": "1450px"
+      }
+    ],
+    "sourceFiles": [
+      "dist/styles.css",
+      "dist/index.html",
+      "dist/app.js",
+      "dist/model.mjs"
+    ],
+    "approvedComp": ".impeccable/mocks/overview-a.png",
+    "tonalRampNote": "Preview ramps are synthesized in OKLCH; they are not additional application tokens."
+  },
+  "components": [
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Add transaction",
+      "html": "<button class=\"ds-primary\">Add transaction</button>",
+      "css": ".ds-primary{font-family:DM Sans,sans-serif;font-size:16px;font-weight:600;border-radius:9px;padding:11px 16px;cursor:pointer;transition:background .15s;background:var(--lime,#c4e77f);color:#263420;border:0;}.ds-primary:hover{background:#b4d56b}.ds-primary:focus-visible{outline:3px solid #6b883b;outline-offset:3px}"
+    },
+    {
+      "name": "Secondary button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Cancel",
+      "html": "<button class=\"ds-secondary\">Cancel</button>",
+      "css": ".ds-secondary{font-family:DM Sans,sans-serif;font-size:16px;font-weight:600;border-radius:9px;padding:11px 16px;cursor:pointer;transition:background .15s;background:#fff;color:#263329;border:1px solid #d5dbcf;}.ds-secondary:hover{background:#e9eddf}.ds-secondary:focus-visible{outline:3px solid #6b883b;outline-offset:3px}"
+    },
+    {
+      "name": "Labeled field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Visible label above a standard form field.",
+      "html": "<label class=\"ds-label\">Description<input class=\"ds-field\" placeholder=\"What was it for?\"></label>",
+      "css": ".ds-label{display:block;font:500 14px DM Sans,sans-serif;color:#263329}.ds-field{display:block;width:100%;font:400 16px DM Sans,sans-serif;border:1px solid #ccd4c5;border-radius:8px;padding:11px 12px;margin-top:8px;background:white;color:var(--olive,#233326)}.ds-field:focus-visible{outline:3px solid #6b883b;outline-offset:3px}"
+    },
+    {
+      "name": "Main navigation",
+      "kind": "nav",
+      "description": "Olive navigation with separate selected and hover states.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Main navigation\"><button class=\"ds-nav-item ds-active\" aria-current=\"page\">Overview</button><button class=\"ds-nav-item\">Transactions</button><button class=\"ds-nav-item\">Budgets</button></nav>",
+      "css": ".ds-nav{display:grid;gap:9px;background:var(--olive,#233326);padding:17px}.ds-nav-item{font:500 16px DM Sans,sans-serif;text-align:left;padding:14px 16px;border:0;border-radius:9px;background:transparent;color:#e4eadf;cursor:pointer;transition:background .15s}.ds-nav-item:hover{background:#344733}.ds-nav-item.ds-active{background:#5a703d;color:white}.ds-nav-item:focus-visible{outline:3px solid #6b883b;outline-offset:3px}"
+    },
+    {
+      "name": "Sample badge",
+      "kind": "chip",
+      "refersTo": "sample-badge",
+      "description": "Clearly labels demonstration data.",
+      "html": "<span class=\"ds-badge\">Sample data</span>",
+      "css": ".ds-badge{display:inline-block;background:#e8eddc;color:#40522e;border-radius:5px;padding:5px 8px;font:650 12px DM Sans,sans-serif;white-space:nowrap}"
+    },
+    {
+      "name": "Category tag",
+      "kind": "chip",
+      "refersTo": "category-tag",
+      "description": "Warm neutral category label in the transaction table.",
+      "html": "<span class=\"ds-tag\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" aria-hidden=\"true\"><path d=\"m3 10 9-7 9 7M5 9v12h5v-7h4v7h5V9\"/></svg>Housing</span>",
+      "css": ".ds-tag{display:inline-flex;align-items:center;gap:7px;font:400 12px DM Sans,sans-serif;color:#263329;padding:5px 8px;background:#f4f3ec;border-radius:5px;white-space:nowrap}"
+    },
+    {
+      "name": "Ledger panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Flat white financial workspace panel.",
+      "html": "<section class=\"ds-panel\"><h2>Spending breakdown</h2><p>Where your money went this month.</p></section>",
+      "css": ".ds-panel{background:#fff;color:#263329;border:1px solid var(--line,#e0e4dc);border-radius:14px;padding:24px;font-family:DM Sans,sans-serif}.ds-panel h2{margin:0;font-size:21px;font-weight:650;letter-spacing:-.025em}.ds-panel p{color:var(--muted,#5e685b);font-size:14px;margin:6px 0 0;line-height:1.5}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Calm Ledger",
+    "overview": "The approved balanced mockup A direction uses bright working surfaces, a deep olive navigation rail, and warm chart colors. A quiet, practical layout makes totals, remaining budgets, and transaction entry easy to find. These records describe the implemented static app in `dist/`, including the final CSS overrides.",
+    "keyCharacteristics": [
+      "Deep olive navigation with a lime primary action.",
+      "White, finely bordered panels on a pale canvas.",
+      "Clear financial numerals and exact values beside charts.",
+      "Compact desktop review and stacked mobile totals."
+    ],
+    "rules": [
+      {
+        "name": "The Exact Value Rule",
+        "body": "Charts and budget fills accompany readable amounts and labels; color never carries financial meaning alone.",
+        "section": "colors"
+      },
+      {
+        "name": "The Flat Workspace Rule",
+        "body": "Keep financial panels flat; reserve depth for dialogs and toast feedback.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** preserve the approved olive, lime, bright-panel direction.",
+      "**Do** pair chart and status colors with exact text values.",
+      "**Do** retain tabular financial numerals and visible keyboard focus.",
+      "**Do** keep mobile totals as separated label/value rows."
+    ],
+    "donts": [
+      "**Don't** replace the warm category mapping with an unrelated palette.",
+      "**Don't** add elevation to ordinary ledger panels.",
+      "**Don't** make chart color the only way to read an amount or status."
+    ]
+  }
+}

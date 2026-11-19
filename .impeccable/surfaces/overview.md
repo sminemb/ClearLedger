@@ -2,6 +2,6 @@
 
 Mode: operate.
 
-User approved the olive ledger direction and requested an image mockup before coding. Three compositions will explore density and hierarchy within that fixed direction. App implementation waits for the selected mockup.
+User approved mockup A: `.impeccable/mocks/overview-a.png`. The app implements the balanced overview, with a separate explicit sample banner, exact legend values instead of crowded donut percentages, and stacked mobile totals for readability.
 
 Primary action: add transaction. Required content: monthly income, expense and remaining totals; category spending; budget status; transaction list; explicit sample-data indicator.

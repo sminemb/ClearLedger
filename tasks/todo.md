@@ -1,4 +1,4 @@
 - [x] Validated model and tests
 - [x] Responsive app and persistence
-- [x] Browser verification (review in progress)
-- [ ] Private publication
+- [x] Browser verification and review (all five requested fixes resolved)
+- [x] Private publication package prepared; deployment outcome is tracked by Sites
