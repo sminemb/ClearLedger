@@ -10,7 +10,7 @@ Tests: `npm test` (or `node --test`). Tests use temporary databases.
 
 ## AI Advice
 
-Set `GEMINI_API_KEY` to a Gemini API key from a Google Cloud project with active billing before running `npm start`. You can also put `GEMINI_API_KEY=your-api-key` in a local `.env` file (ignored by Git) and start ClearLedger with `node --env-file=.env server.mjs`. The default model is `gemini-3.5-flash-lite`. To use a different Gemini model that supports structured outputs, set `GEMINI_MODEL`. [Gemini API key setup](https://ai.google.dev/gemini-api/docs/api-key)
+Put `GEMINI_API_KEY=your-api-key` in the project’s `.env` file (ignored by Git), then run `npm start`. ClearLedger loads `.env` at startup, so restart the server after editing it. Use a Gemini API key from a Google Cloud project with active billing. The default model is `gemini-3.5-flash-lite`. To use a different Gemini model that supports structured outputs, set `GEMINI_MODEL`. [Gemini API key setup](https://ai.google.dev/gemini-api/docs/api-key)
 
 Sign in, choose a month with recorded transactions or category budgets, then select **Generate advice** on the **Overview**. The reply contains a summary, observations, and numbered next steps. It is shown for the selected month and stays in the current page session.
 
