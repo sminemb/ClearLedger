@@ -3,3 +3,4 @@ outputs/
 data/
 node_modules/
 .impeccable/review/
+.venv
