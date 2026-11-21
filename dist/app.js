@@ -9,6 +9,7 @@ const today = () => { const date = new Date(); return `${date.getFullYear()}-${S
 const key = 'clearledger-v1';
 let month = today().slice(0,7), state, demo = true, blocked = false, view = 'overview', editId = null, search = '', filterCategory = '', filterType = '';
 let account = null, revision = 0, saving = false;
+let advice = null, advicePending = false;
 state = sample(month);
 async function api(path, method = 'GET', body) {
   const response = await fetch('/api/' + path, { method, headers: { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
@@ -119,6 +120,49 @@ function transactionsHTML(recent=false) {
 function budgetsHTML(totals) {
   return `<section class="panel budget-form"><h2>Plan your month</h2><p class="panel-intro">Set limits for ${escape(monthName())}. Leave a field blank for no budget.</p><form id="budget-form">${categories.map(c=>`<div class="budget-edit-row"><div><h3>${escape(c)}</h3><p>${money(totals.categories[c])} spent this month</p></div><label><span class="sr-only">${escape(c)} budget in ${state.currency}</span><input inputmode="decimal" name="${escape(c)}" placeholder="No limit" pattern="[0-9]+([.][0-9]{1,2})?" title="Enter an amount with up to two decimal places." value="${state.budgets[month]?.[c]===undefined?'':(state.budgets[month][c]/100).toFixed(2)}"></label></div>`).join('')}<p id="budget-error" class="form-error" role="alert"></p><button class="primary" type="submit">Save budgets</button></form></section>`;
 }
+function adviceHTML(totals) {
+  const canGenerate = !demo && !blocked && (totals.income || totals.expenses || Object.keys(state.budgets[month] ?? {}).length);
+  let detail = 'Generating advice sends this month’s income, spending totals, and category budgets to Google Gemini.';
+  if (demo) detail = 'Sign in to get budgeting suggestions for your own ledger.';
+  else if (blocked) detail = 'Reload your ledger before generating advice.';
+  else if (!canGenerate) detail = 'Add a transaction or set a budget for this month to get advice.';
+  return `<section class="panel advice-panel" aria-labelledby="advice-title">
+    <div class="section-heading">
+      <div><h2 id="advice-title">AI Advice</h2><p class="panel-intro">${detail}</p></div>
+      ${canGenerate ? '<button class="secondary" id="generate-advice" type="button">Generate advice</button>' : ''}
+    </div>
+    <p id="advice-status" class="panel-intro advice-status" role="status"></p>
+    <div id="advice-result" class="advice-result"></div>
+  </section>`;
+}
+function updateAdvice() {
+  if (!advice || view !== 'overview') return;
+  const button = $('#generate-advice');
+  if (!button) return;
+  const current = advice.month === month && advice.revision === revision && advice.account === account ? advice : null;
+  const result = current?.result;
+  button.setAttribute('aria-disabled', String(advicePending));
+  button.textContent = advicePending ? 'Generating…' : result ? 'Generate again' : 'Generate advice';
+  const status = $('#advice-status');
+  status.className = result ? 'sr-only' : 'panel-intro advice-status';
+  status.textContent = advicePending ? (current ? 'Generating advice for this month…' : 'Finishing an earlier advice request…') : current?.error || (result ? 'Your advice is ready.' : '');
+  const items = list => list.map(item => `<li>${escape(item)}</li>`).join('');
+  $('#advice-result').innerHTML = result ? `<h3>Summary</h3><p>${escape(result.summary)}</p>
+    <div class="advice-details">
+      <div><h3>Observations</h3><ul>${items(result.observations)}</ul></div>
+      <div><h3>Next steps</h3><ol>${items(result.nextSteps)}</ol></div>
+    </div>` : '';
+}
+async function requestAdvice() {
+  if (demo || blocked || saving || advicePending) return;
+  const request = { month, revision, account };
+  advice = { ...request };
+  advicePending = true;
+  updateAdvice();
+  try { advice.result = await api('advice', 'POST', request); }
+  catch (error) { advice.error = error.status ? error.message : 'Could not load AI advice. Try again.'; }
+  finally { advicePending = false; updateAdvice(); }
+}
 function settingsHTML() { return `<section class="panel settings-panel"><h2>Make it yours</h2><p>${account ? 'Signed in as ' + escape(account) + '. Records are saved in SQLite on this computer.' : 'Explore sample data, or sign in to save a personal ledger on this computer.'}</p><label>Display currency<select id="currency">${currencies.map(c=>`<option ${state.currency===c?'selected':''}>${c}</option>`).join('')}</select></label><p>Changing currency changes the label on existing amounts. It does not convert them using exchange rates.</p><hr><h2>Your records, in your hands</h2><p>Export your transactions as CSV for a spreadsheet, or download a full JSON copy of your records and budgets. Keep a backup of your records and the local database.</p><div class="settings-actions"><button class="secondary" data-export>${icon('download')}Export CSV</button><button class="secondary" id="backup">Download full backup</button></div>${blocked?'<button class="secondary" id="recovery">Download recovery data</button>':''}<small>${demo?'You’re exploring sample data. Changes in sample mode are temporary.':'Your account is available through this local server. No cloud syncing.'}</small>${demo?'<hr><button class="primary" id="settings-start">Sign in or create account</button>':'<hr><button class="secondary" id="import-browser">Import legacy browser records</button><button class="secondary" id="sign-out">Sign out</button>'}</section>`; }
 function render() {
   const titles = {overview:['Your month, at a glance','A little clarity for your everyday spending.'],transactions:['Your transactions','Every entry brings a little more clarity.'],budgets:['A plan for your month','Spend with intention. Leave room for what matters.'],settings:['Your space, your settings','Simple preferences. Complete ownership.']};
@@ -127,7 +171,8 @@ function render() {
   $('#demo-bar').hidden = !demo; $('#header-sign-out').hidden = demo;
   $('#save-status').textContent = demo?'Exploring sample data':blocked?'Reload required':'Saved to local database';
   const totals=summary(state,month);
-  $('#content').innerHTML = view==='settings'?settingsHTML():totalsHTML(totals)+(view==='overview'?`<div class="overview-grid">${breakdown(totals)}<section class="panel"><h2>Monthly budget</h2><p class="panel-intro">Your spending against this month’s budgets.</p>${budgetItems(totals)}<button class="primary wide" data-go="budgets">${icon('edit')}Edit budgets</button></section></div>`+transactionsHTML(true):view==='transactions'?transactionsHTML():budgetsHTML(totals));
+  $('#content').innerHTML = view==='settings'?settingsHTML():totalsHTML(totals)+(view==='overview'?`<div class="overview-grid">${breakdown(totals)}<section class="panel"><h2>Monthly budget</h2><p class="panel-intro">Your spending against this month’s budgets.</p>${budgetItems(totals)}<button class="primary wide" data-go="budgets">${icon('edit')}Edit budgets</button></section></div>`+adviceHTML(totals)+transactionsHTML(true):view==='transactions'?transactionsHTML():budgetsHTML(totals));
+  updateAdvice();
   $('#add').disabled = blocked; if ($('#currency')) $('#currency').disabled = blocked;
 }
 function navigate(next) { view=next; render(); }
@@ -150,6 +195,7 @@ document.addEventListener('click',async event=>{
   if(button.dataset.edit)openEditor(button.dataset.edit);
   if(button.hasAttribute('data-close') && !saving)$('#editor').close();
   if(button.matches('#start-fresh,#settings-start'))openAuth();
+  if(button.id==='generate-advice') await requestAdvice();
   if(button.hasAttribute('data-export'))download(csv(state),'clearledger-transactions.csv','text/csv;charset=utf-8');
   if(button.id==='import-browser') await importBrowserRecords();
   if(button.id==='sign-out' || button.id==='header-sign-out') {

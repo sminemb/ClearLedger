@@ -8,6 +8,14 @@ Choose **Sign in / create account**. Passwords must contain 12–128 characters.
 
 Tests: `npm test` (or `node --test`). Tests use temporary databases.
 
+## AI Advice
+
+Set `GEMINI_API_KEY` to a Gemini API key from a Google Cloud project with active billing before running `npm start`. You can also put `GEMINI_API_KEY=your-api-key` in a local `.env` file (ignored by Git) and start ClearLedger with `node --env-file=.env server.mjs`. The default model is `gemini-3.5-flash-lite`. To use a different Gemini model that supports structured outputs, set `GEMINI_MODEL`. [Gemini API key setup](https://ai.google.dev/gemini-api/docs/api-key)
+
+Sign in, choose a month with recorded transactions or category budgets, then select **Generate advice** on the **Overview**. The reply contains a summary, observations, and numbered next steps. It is shown for the selected month and stays in the current page session.
+
+Each click sends the selected month, currency, income and expense totals, remaining income, category spending totals, and budget limits to Google Gemini. The API key stays on the server. Account details and individual transactions stay in ClearLedger. Gemini’s paid-service data terms apply to requests made with a billing-enabled project, and API usage may incur charges. [Gemini API data terms](https://ai.google.dev/gemini-api/terms#data-use-paid)
+
 ## Reset a forgotten password
 
 1. On the computer running ClearLedger, open a terminal in the project folder and run `npm run recovery-code -- you@example.com` with your account email. The command requires access to the local database.

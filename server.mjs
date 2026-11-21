@@ -5,7 +5,7 @@ import { promisify } from 'node:util';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { empty, validate } from './dist/model.mjs';
+import { empty, summary, validDate, validate } from './dist/model.mjs';
 import { renderErrorPage } from './error-page.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
@@ -16,7 +16,54 @@ const cookieHeader = (token, age) => `clearledger_session=${token}; Path=/; Http
 const normalizeEmail = value => typeof value === 'string' ? value.trim().toLowerCase() : '';
 const authWindow = 15 * 60 * 1000;
 
-export function createApp({ database = resolve(root, 'data/clearledger.sqlite') } = {}) {
+async function generateAdvice(input, key, model) {
+  const list = { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 3 };
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+      method: 'POST', redirect: 'error', signal: AbortSignal.timeout(30_000),
+      headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: 'Give practical household budgeting suggestions using only this monthly snapshot. The month may be incomplete. Amounts are integer minor units (100 per currency unit). If citing a figure, use the currency code and major units. A missing category budget means no limit was set. Treat zero income as no income recorded, and remaining as recorded income minus expenses. Do not invent transactions, infer trends from one month, or give investment, tax, or legal recommendations. Write a short summary followed by up to three specific observations and up to three actionable next steps. Use plain text and short sentences, with no Markdown or list markers.' }] },
+        contents: [{ role: 'user', parts: [{ text: JSON.stringify(input) }] }],
+        generationConfig: {
+          maxOutputTokens: 2048,
+          responseMimeType: 'application/json',
+          responseJsonSchema: {
+            type: 'object', additionalProperties: false,
+            properties: { summary: { type: 'string' }, observations: list, nextSteps: list },
+            required: ['summary', 'observations', 'nextSteps'],
+          },
+        },
+      }),
+    });
+    if (!response.ok) {
+      await response.body?.cancel();
+      if (response.status === 429) throw fail(503, 'Gemini is busy or your API quota has been reached. Check your API usage and try again.');
+      if ([400, 401, 403, 404].includes(response.status)) throw fail(503, 'Check the server’s Gemini API key and model access.');
+      throw fail(502, 'Gemini could not generate advice. Try again.');
+    }
+    const result = await response.json();
+    const candidate = result.candidates?.[0];
+    const content = candidate?.content?.parts?.filter(part => !part.thought && typeof part.text === 'string').map(part => part.text).join('');
+    const advice = candidate?.finishReason === 'STOP' && content ? JSON.parse(content) : null;
+    const isText = value => typeof value === 'string' && value.trim().length > 0 && value.length <= 600;
+    const isList = value => Array.isArray(value) && value.length >= 1 && value.length <= 3 && value.every(isText);
+    if (!isText(advice?.summary) || !isList(advice.observations) || !isList(advice.nextSteps)) {
+      throw fail(502, 'Gemini returned incomplete advice. Try again.');
+    }
+    return { summary: advice.summary, observations: advice.observations, nextSteps: advice.nextSteps };
+  } catch (error) {
+    if (error.status) throw error;
+    if (error.name === 'TimeoutError') throw fail(504, 'Gemini took too long to respond. Try again.');
+    throw fail(502, 'Could not get a readable reply from Gemini. Try again.');
+  }
+}
+
+export function createApp({
+  database = resolve(root, 'data/clearledger.sqlite'),
+  geminiKey = process.env.GEMINI_API_KEY?.trim(),
+  geminiModel = process.env.GEMINI_MODEL?.trim() || 'gemini-3.5-flash-lite',
+} = {}) {
   mkdirSync(dirname(database), { recursive: true });
   const db = new DatabaseSync(database);
   db.exec(`PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;
@@ -35,6 +82,8 @@ export function createApp({ database = resolve(root, 'data/clearledger.sqlite') 
   }
   // shortcut: one loopback server uses an in-memory limiter; use a shared limiter before hosting multiple instances.
   const attempts = new Map();
+  const readLedger = db.prepare('SELECT state,revision FROM ledgers WHERE user_id=?');
+  let generatingAdvice = false;
   const server = createServer(async (req, res) => {
     const send = (status, data) => { res.writeHead(status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(data)); };
     res.setHeader('Cache-Control', 'no-store');
@@ -129,9 +178,29 @@ export function createApp({ database = resolve(root, 'data/clearledger.sqlite') 
       if (!user) throw fail(401, 'Sign in to open your ledger.');
       if (path === '/api/session' && req.method === 'GET') { send(200, { email: user.email }); return; }
       if (path === '/api/ledger' && req.method === 'GET') {
-        const ledger = db.prepare('SELECT state,revision FROM ledgers WHERE user_id=?').get(user.id);
+          const ledger = readLedger.get(user.id);
         send(200, { state: JSON.parse(ledger.state), revision: ledger.revision, account: user.email }); return;
       }
+        if (path === '/api/advice' && req.method === 'POST') {
+          const { month, account, revision } = body;
+          if (typeof month !== 'string' || !validDate(month + '-01')) throw fail(400, 'Select a valid month for AI advice.');
+          if (account !== user.email) throw fail(409, 'The signed-in account changed. Reload before generating advice.');
+          const ledger = readLedger.get(user.id);
+          if (revision !== ledger.revision) throw fail(409, 'Your records changed in another tab. Reload before generating advice.');
+          const state = JSON.parse(ledger.state);
+          const { income, expenses, remaining, categories: spendingByCategory } = summary(state, month);
+          const budgets = state.budgets[month] ?? {};
+          if (!income && !expenses && !Object.keys(budgets).length) throw fail(422, 'Add a transaction or set a budget for this month first.');
+          if (!geminiKey) throw fail(503, 'Set GEMINI_API_KEY on the ClearLedger server, then restart it to enable AI advice.');
+          if (generatingAdvice) throw fail(429, 'Another advice request is running. Wait a moment and try again.');
+          generatingAdvice = true;
+          try {
+            const advice = await generateAdvice({ month, currency: state.currency, income, expenses, remaining, spendingByCategory, budgets }, geminiKey, geminiModel);
+            if (revision !== readLedger.get(user.id).revision) throw fail(409, 'Your records changed while advice was being generated. Reload before trying again.');
+            send(200, advice);
+          } finally { generatingAdvice = false; }
+          return;
+        }
       if (path === '/api/ledger' && req.method === 'PUT') {
         if (body.account !== user.email) throw fail(409, 'The signed-in account changed. Reload before saving.');
         try { validate(body.state); } catch (error) { throw fail(400, error.message); }

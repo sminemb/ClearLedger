@@ -58,11 +58,74 @@ test('page errors return HTML with the correct status and a way back to the over
   assert.equal((await fetch(`${base}/styles.css`)).status, 200);
 });
 
+test('AI advice sends only the signed-in account’s selected month summary and returns structured text', async t => {
+  const app = createApp({ database: ':memory:', geminiKey: 'test-key', geminiModel: 'gemini-3.5-flash-lite' });
+  t.after(() => app.close());
+  await new Promise(resolve => app.server.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${app.server.address().port}`;
+  const advice = { summary: 'Review your food spending.', observations: ['Food spending exceeded its budget.'], nextSteps: ['Set a weekly food limit.'] };
+  const providerRequests = [];
+  let reply = advice;
+  let finishReason = 'STOP';
+  const realFetch = globalThis.fetch;
+  t.mock.method(globalThis, 'fetch', (url, options) => {
+    if (url.startsWith(base + '/')) return realFetch(url, options);
+    assert.equal(url, 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent');
+    providerRequests.push({ body: JSON.parse(options.body), headers: options.headers });
+    const json = JSON.stringify(reply);
+    return Response.json({ candidates: [{ finishReason, content: { role: 'model', parts: [
+      { text: 'Thinking', thought: true }, { text: json.slice(0, 30) }, { text: json.slice(30) },
+    ] } }] });
+  });
+  const request = (path, body, cookie = '', origin = base, method = 'POST') => fetch(base + path, {
+    method, headers: { 'content-type': 'application/json', origin, cookie }, body: JSON.stringify(body),
+  });
+  const account = 'advice@example.com';
+  const data = { month: '2026-11', account, revision: 0 };
+  assert.equal((await request('/api/advice', data)).status, 401);
+  const signup = await request('/api/register', { email: account, password: 'long enough password' });
+  const cookie = signup.headers.get('set-cookie').split(';')[0];
+  assert.equal((await request('/api/advice', data, cookie, 'https://other.example')).status, 403);
+  assert.equal((await request('/api/advice', { ...data, month: '2026-13' }, cookie)).status, 400);
+  assert.equal((await request('/api/advice', { ...data, account: 'other@example.com' }, cookie)).status, 409);
+  assert.equal((await request('/api/advice', data, cookie)).status, 422);
+  assert.equal(providerRequests.length, 0);
+
+  const state = empty();
+  state.currency = 'PHP';
+  state.budgets['2026-11'] = { 'Food & dining': 1000, Other: 0 };
+  state.transactions = [
+    { id: 'private-id', description: 'Private merchant name', amount: 1234, date: '2026-11-19', type: 'expense', category: 'Food & dining' },
+    { id: 'other-month', description: 'October records', amount: 999, date: '2026-10-19', type: 'income', category: 'Other' },
+  ];
+  assert.equal((await request('/api/ledger', { state, revision: 0, account }, cookie, base, 'PUT')).status, 200);
+  assert.equal((await request('/api/advice', data, cookie)).status, 409);
+  const response = await request('/api/advice', { ...data, revision: 1 }, cookie);
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), advice);
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  const [{ body, headers }] = providerRequests;
+  assert.equal(headers['x-goog-api-key'], 'test-key');
+  assert.equal(body.generationConfig.responseMimeType, 'application/json');
+  assert.deepEqual(body.generationConfig.responseJsonSchema.required, ['summary', 'observations', 'nextSteps']);
+  assert.deepEqual(JSON.parse(body.contents[0].parts[0].text), {
+    month: '2026-11', currency: 'PHP', income: 0, expenses: 1234, remaining: -1234,
+    spendingByCategory: { Housing: 0, 'Food & dining': 1234, Shopping: 0, Transport: 0, Entertainment: 0, Other: 0 },
+    budgets: { 'Food & dining': 1000, Other: 0 },
+  });
+
+  reply = { ...advice, nextSteps: [] };
+  assert.equal((await request('/api/advice', { ...data, revision: 1 }, cookie)).status, 502);
+  reply = advice;
+  finishReason = 'MAX_TOKENS';
+  assert.equal((await request('/api/advice', { ...data, revision: 1 }, cookie)).status, 502);
+});
+
 test('accounts isolate data, reject unsafe writes, and survive a server restart', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'clearledger-'));
   let app;
   const start = async () => {
-    app = createApp({ database: join(dir, 'test.sqlite') });
+    app = createApp({ database: join(dir, 'test.sqlite'), geminiKey: '' });
     await new Promise(resolve => app.server.listen(0, '127.0.0.1', resolve));
     return `http://127.0.0.1:${app.server.address().port}`;
   };
@@ -84,6 +147,9 @@ test('accounts isolate data, reject unsafe writes, and survive a server restart'
     state.transactions.push({ id: 'test', description: 'Café ☕', amount: 1234, date: '2026-11-19', type: 'expense', category: 'Other' });
     const write = { state, revision: 0, account: credentials.email };
     assert.equal((await request('/api/ledger', 'PUT', write, cookie)).status, 200);
+    const adviceWithoutKey = await request('/api/advice', 'POST', { month: '2026-11', account: credentials.email, revision: 1 }, cookie);
+    assert.equal(adviceWithoutKey.status, 503);
+    assert.match((await adviceWithoutKey.json()).error, /GEMINI_API_KEY/);
     assert.equal((await request('/api/ledger', 'PUT', write, cookie)).status, 409);
     assert.equal((await request('/api/ledger', 'PUT', { ...write, state: {}, revision: 1 }, cookie)).status, 400);
     const other = await request('/api/register', 'POST', { ...credentials, email: 'two@example.com' });
