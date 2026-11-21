@@ -6,6 +6,7 @@ import { mkdirSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { empty, validate } from './dist/model.mjs';
+import { renderErrorPage } from './error-page.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const derive = (password, salt) => promisify(scrypt)(password, salt, 64, { N: 32768, r: 8, p: 3, maxmem: 64 * 1024 * 1024 });
@@ -41,14 +42,23 @@ export function createApp({ database = resolve(root, 'data/clearledger.sqlite') 
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('Referrer-Policy', 'no-referrer');
     res.setHeader('Content-Security-Policy', "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+    let isPageRequest = false;
     try {
       const host = req.headers.host;
       if (!/^(localhost|127\.0\.0\.1):\d+$/.test(host || '')) throw fail(403, 'Use the local server address.');
       const path = new URL(req.url, `http://${host}`).pathname;
       if (!path.startsWith('/api/')) {
         const files = { '/': ['index.html', 'text/html'], '/index.html': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/model.mjs': ['model.mjs', 'text/javascript'], '/styles.css': ['styles.css', 'text/css'] };
-        if (req.method !== 'GET' || !files[path]) throw fail(404, 'Not found.');
-        const [file, type] = files[path]; res.writeHead(200, { 'Content-Type': type }); res.end(readFileSync(resolve(root, 'dist', file))); return;
+        if (path === '/api' || (req.method !== 'GET' && req.method !== 'HEAD')) throw fail(404, 'Not found.');
+        const asset = files[path];
+        const destination = req.headers['sec-fetch-dest'];
+        isPageRequest = (!destination || destination === 'document') && (!asset || asset[1] === 'text/html');
+        if (!asset) throw fail(404, 'Not found.');
+        const [file, type] = asset;
+        const content = readFileSync(resolve(root, 'dist', file));
+        res.writeHead(200, { 'Content-Type': type });
+        res.end(content);
+        return;
       }
       let body;
       if (req.method !== 'GET') {
@@ -131,7 +141,16 @@ export function createApp({ database = resolve(root, 'data/clearledger.sqlite') 
         send(200, { revision: body.revision + 1 }); return;
       }
       throw fail(404, 'Not found.');
-    } catch (error) { if (!error.status) console.error('Local server request failed:', error.code || error.name); send(error.status || 500, { error: error.status ? error.message : 'The server could not save or load records. Your previous records are unchanged.' }); }
+    } catch (error) {
+      if (!error.status) console.error('Local server request failed:', error.code || error.name);
+      const status = error.status || 500;
+      if (isPageRequest) {
+        res.writeHead(status, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(renderErrorPage(status));
+        return;
+      }
+      send(status, { error: error.status ? error.message : 'The server could not save or load records. Your previous records are unchanged.' });
+    }
   });
   return { server, generateRecoveryCode, close: () => new Promise((resolveClose, reject) => server.close(error => {
     db.close();

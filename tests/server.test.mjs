@@ -1,11 +1,62 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
 import { createApp } from '../server.mjs';
 import { empty } from '../dist/model.mjs';
+
+test('page errors return HTML with the correct status and a way back to the overview', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'clearledger-errors-'));
+  let app;
+  t.after(async () => {
+    await app?.close();
+    await rm(dir, { recursive: true, force: true });
+  });
+  const dist = join(dir, 'dist');
+  await mkdir(dist);
+  for (const file of ['server.mjs', 'error-page.mjs', 'dist/model.mjs', 'dist/styles.css']) {
+    await copyFile(new URL(`../${file}`, import.meta.url), join(dir, file));
+  }
+  const fixture = await import(pathToFileURL(join(dir, 'server.mjs')).href);
+  app = fixture.createApp({ database: ':memory:' });
+  await new Promise(resolve => app.server.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${app.server.address().port}`;
+
+  const serverLog = t.mock.method(console, 'error', () => {});
+  for (const [path, status, heading, action] of [
+    ['/old/link', 404, 'Page not found', 'Back to overview'],
+    ['/', 500, 'This page couldn’t load', 'Try again'],
+  ]) {
+    const response = await fetch(base + path);
+    assert.equal(response.status, status);
+    assert.match(response.headers.get('content-type'), /^text\/html/);
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    const html = await response.text();
+    assert.ok(html.includes(`<h1 id="error-title">${heading}</h1>`));
+    assert.ok(html.includes(`href="/">${action}</a>`));
+    assert.ok(html.includes('href="/styles.css"'));
+  }
+  assert.equal(serverLog.mock.callCount(), 1);
+
+  const head = await fetch(`${base}/old/link`, { method: 'HEAD' });
+  assert.equal(head.status, 404);
+  assert.equal(head.headers.get('content-type'), 'text/html; charset=utf-8');
+  assert.equal(await head.text(), '');
+
+  const asset = await fetch(`${base}/missing.css`, { headers: { 'Sec-Fetch-Dest': 'style' } });
+  assert.equal(asset.status, 404);
+  assert.deepEqual(await asset.json(), { error: 'Not found.' });
+  const api = await fetch(`${base}/api/ledger`, { headers: { Accept: 'text/html' } });
+  assert.equal(api.status, 401);
+  assert.deepEqual(await api.json(), { error: 'Sign in to open your ledger.' });
+
+  await copyFile(new URL('../dist/index.html', import.meta.url), join(dist, 'index.html'));
+  assert.equal((await fetch(`${base}/`)).status, 200);
+  assert.equal((await fetch(`${base}/styles.css`)).status, 200);
+});
 
 test('accounts isolate data, reject unsafe writes, and survive a server restart', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'clearledger-'));

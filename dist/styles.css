@@ -44,3 +44,36 @@ label + .form-error:not(:empty),
 #notice { margin-block-end: 20px; }
 input[aria-invalid="true"],
 select[aria-invalid="true"] { border-color: var(--red); }
+
+.error-page {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+.error-header {
+  padding: 18px max(18px, calc((100% - 1040px) / 2));
+  background: var(--olive);
+  color: #f6f8f1;
+}
+.error-header .brand { margin: 0; }
+.error-main {
+  display: grid;
+  place-items: center;
+  max-width: none;
+  margin: 0;
+  padding: 24px 18px;
+}
+.error-panel { width: min(100%, 504px); padding: clamp(24px, 6vw, 40px); }
+.error-code { display: inline-block; margin: 0 0 16px; font-variant-numeric: tabular-nums; }
+.error-panel .panel-intro { margin-top: 12px; font-size: 16px; }
+.error-action {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 24px;
+  padding: 11px 16px;
+  border-radius: 9px;
+  font-weight: 600;
+  text-decoration: none;
+}
