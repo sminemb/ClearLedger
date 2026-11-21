@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { copyFile, mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -179,7 +179,9 @@ test('accounts isolate data, reject unsafe writes, and survive a server restart'
     assert.equal((await request('/data/test.sqlite')).status, 404);
 
     const reset = { email: credentials.email, password: 'new password for this ledger' };
+    const requestCode = (email, origin = base) => request('/api/request-recovery-code', 'POST', { email }, '', origin);
     assert.equal((await request('/api/reset-password', 'POST', reset)).status, 429);
+    assert.equal((await requestCode(credentials.email)).status, 429);
     assert.throws(() => app.generateRecoveryCode('unknown@example.com'), /No local account/);
     const expired = app.generateRecoveryCode(credentials.email);
     const recoveryDb = new DatabaseSync(join(dir, 'test.sqlite'));
@@ -193,7 +195,24 @@ test('accounts isolate data, reject unsafe writes, and survive a server restart'
     const resetWith = (code, fields = {}, origin = base) => request('/api/reset-password', 'POST', { ...reset, code, ...fields }, '', origin);
     assert.equal((await resetWith(expired)).status, 400);
     const superseded = app.generateRecoveryCode(credentials.email);
-    const code = app.generateRecoveryCode(` ${credentials.email.toUpperCase()} `);
+    assert.equal((await requestCode(credentials.email, 'https://foreign.example')).status, 403);
+    assert.equal((await requestCode('invalid')).status, 400);
+    const missing = await requestCode('unknown@example.com');
+    assert.equal(missing.status, 200);
+    const missingFile = await missing.json();
+    assert.match(missingFile.filename, /^recovery-[a-f0-9]+\.txt$/);
+    await assert.rejects(readFile(join(dir, missingFile.filename)), { code: 'ENOENT' });
+    const issued = await requestCode(` ${credentials.email.toUpperCase()} `);
+    assert.equal(issued.status, 200);
+    const location = await issued.json();
+    assert.deepEqual(Object.keys(location), ['filename']);
+    assert.deepEqual(Object.keys(missingFile), ['filename']);
+    assert.equal((await request('/data/' + location.filename)).status, 404);
+    const codeFile = join(dir, location.filename);
+    const code = (await readFile(codeFile, 'utf8')).trim();
+    assert.match(code, /^[a-f0-9]{32}$/);
+    assert.deepEqual(await (await requestCode(credentials.email)).json(), location);
+    assert.equal((await readFile(codeFile, 'utf8')).trim(), code);
     assert.equal((await resetWith(superseded)).status, 400);
     assert.equal((await resetWith(code, { email: 'two@example.com' })).status, 400);
     assert.equal((await resetWith(code, { password: 'too short' })).status, 400);

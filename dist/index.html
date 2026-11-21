@@ -28,8 +28,10 @@
   </form>
   <form id="reset-form" hidden>
     <h2 id="reset-title">Reset your password</h2>
-    <p class="panel-intro auth-intro" id="reset-help">In a terminal on the computer running ClearLedger, open the ClearLedger folder and run <code>npm run recovery-code -- you@example.com</code> with your account email. The code expires in 15 minutes.</p>
+    <p class="panel-intro auth-intro" id="reset-help">Enter your account email to get a recovery code on this computer. Each code expires after 15 minutes.</p>
     <label>Email<input name="email" type="email" autocomplete="username" maxlength="254" required></label>
+    <button type="button" class="secondary" id="request-code">Get recovery code</button>
+    <p class="panel-intro auth-intro" id="recovery-status" role="status"></p>
     <label>Recovery code<input name="code" type="password" autocomplete="off" maxlength="64" required aria-describedby="reset-help"></label>
     <label>New password (12–128 characters)<input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>
     <p id="reset-error" class="form-error" role="alert"></p>

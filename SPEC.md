@@ -13,7 +13,7 @@ Confirmed: local server with SQLite and email/password accounts. Keep the existi
 - Preserve legacy browser storage. Offer an explicit, confirmed import into an untouched account ledger at the same origin. Samples never migrate automatically.
 - Validate request bodies, enforce ownership, reject foreign origins, limit request size and auth attempts, and serve only allowlisted static files.
 - Verify account isolation, login/logout, invalid inputs, conflict rejection, and persistence across server restart; verify signup/save/reload in a browser.
-- Password recovery uses a local terminal command to issue a 15-minute, single-use code. A successful reset preserves the ledger and revokes every session for the account.
+- The reset form lets users request a 15-minute, single-use code in the local data folder. A successful reset preserves the ledger and revokes every session for the account.
 - Email verification, cloud syncing, bank connections, and hosting are outside the local account scope.
 
 ---

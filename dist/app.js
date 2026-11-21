@@ -251,6 +251,7 @@ $('#forgot-password').addEventListener('click', () => {
   const authForm = $('#auth-form');
   const resetForm = $('#reset-form');
   resetForm.reset();
+  $('#recovery-status').textContent = '';
   resetForm.elements.email.value = authForm.elements.email.value;
   authForm.elements.password.value = '';
   $('#auth-status').textContent = ''; $('#auth-error').textContent = ''; $('#reset-error').textContent = '';
@@ -269,18 +270,28 @@ $('#auth-dialog').addEventListener('close', () => {
   $('#auth-form').elements.password.value = '';
   $('#reset-form').reset();
 });
-$('#reset-form').addEventListener('submit', async event => {
+async function submitRecovery(event) {
   event.preventDefault();
-  const form = event.target;
+  const form = $('#reset-form');
   if (form.dataset.busy) return;
   const { email, code, password } = form.elements;
+  const requesting = event.currentTarget.id === 'request-code';
+  if (requesting && !email.reportValidity()) return;
+  const accountEmail = email.value;
   const authForm = $('#auth-form');
   form.dataset.busy = 'true';
+  email.readOnly = true;
   const buttons = form.querySelectorAll('button');
   buttons.forEach(button => button.disabled = true);
   $('#reset-error').textContent = '';
   try {
-    const accountEmail = email.value;
+    if (requesting) {
+      $('#recovery-status').textContent = '';
+      const { filename } = await api('request-recovery-code', 'POST', { email: accountEmail });
+      $('#recovery-status').textContent = `Look for ${filename} in the ClearLedger project’s data folder. If you find it, paste the code below. If it’s missing, check the email you used to create your account on this computer and try again.`;
+      code.focus();
+      return;
+    }
     await api('reset-password', 'POST', { email: accountEmail, code: code.value, password: password.value });
     form.reset();
     authForm.elements.email.value = accountEmail;
@@ -290,8 +301,15 @@ $('#reset-form').addEventListener('submit', async event => {
   } catch (error) { $('#reset-error').textContent = error.message; }
   finally {
     delete form.dataset.busy;
+    email.readOnly = false;
     buttons.forEach(button => button.disabled = false);
   }
+}
+$('#reset-form').addEventListener('submit', submitRecovery);
+$('#request-code').addEventListener('click', submitRecovery);
+$('#reset-form input[name="email"]').addEventListener('input', () => {
+  $('#recovery-status').textContent = '';
+  $('#reset-form').elements.code.value = '';
 });
 render();
 $('#add').disabled = true;

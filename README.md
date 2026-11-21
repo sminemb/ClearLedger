@@ -18,11 +18,11 @@ Each click sends the selected month, currency, income and expense totals, remain
 
 ## Reset a forgotten password
 
-1. On the computer running ClearLedger, open a terminal in the project folder and run `npm run recovery-code -- you@example.com` with your account email. The command requires access to the local database.
-2. In **Sign in / create account**, select **Forgot password?** Enter your account email, the code printed in the terminal, and a new password.
+1. In **Sign in / create account**, select **Forgot password?**, enter your account email, and select **Get recovery code**.
+2. Open the named text file in the ClearLedger project’s `data` folder. Paste its code into the reset form, enter a new password, and select **Reset password**.
 3. Sign in with your new password. Resetting the password ends all sessions for that account and preserves the ledger.
 
-A code works once and expires after 15 minutes. Generating a new code replaces the previous one. Keep the code private.
+A code works once and expires after 15 minutes. Repeating the request while the file’s code is valid keeps that code. Keep the data folder private. Anyone who can read the recovery file can use its code while it is valid.
 
 ## Existing browser records
 

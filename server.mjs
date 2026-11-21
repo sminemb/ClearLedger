@@ -2,7 +2,7 @@ import { createServer } from 'node:http';
 import { DatabaseSync } from 'node:sqlite';
 import { randomBytes, createHash, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
-import { mkdirSync, readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { empty, summary, validDate, validate } from './dist/model.mjs';
@@ -125,7 +125,7 @@ export function createApp({
       }
       db.prepare('DELETE FROM sessions WHERE expires <= ?').run(Date.now());
       const user = token && db.prepare('SELECT users.id, users.email FROM sessions JOIN users ON users.id=sessions.user_id WHERE token_hash=?').get(digest(token));
-      if (req.method === 'POST' && ['/api/register', '/api/login', '/api/reset-password'].includes(path)) {
+      if (req.method === 'POST' && ['/api/register', '/api/login', '/api/request-recovery-code', '/api/reset-password'].includes(path)) {
         const now = Date.now();
         for (const [key, value] of attempts) if (value.until <= now) attempts.delete(key);
         const address = req.socket.remoteAddress;
@@ -133,8 +133,34 @@ export function createApp({
         attempts.set(address, attempt);
         if (++attempt.count > 20) throw fail(429, 'Too many account attempts. Try again in 15 minutes.');
         const email = normalizeEmail(body.email);
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 || typeof body.password !== 'string' || body.password.length < 12 || body.password.length > 128) throw fail(400, 'Enter a valid email and a password of 12–128 characters.');
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) throw fail(400, 'Enter a valid account email.');
         let account = db.prepare('SELECT * FROM users WHERE email=?').get(email);
+        if (path === '/api/request-recovery-code') {
+          const filename = `recovery-${digest(email).slice(0, 24)}.txt`;
+          if (account) {
+            const file = resolve(dirname(database), filename);
+            db.exec('BEGIN IMMEDIATE');
+            try {
+              const active = db.prepare('SELECT token_hash FROM password_recovery WHERE user_id=? AND expires>?').get(account.id, now);
+              let saved;
+              if (active) {
+                try { saved = readFileSync(file, 'utf8').trim(); }
+                catch (error) { if (error.code !== 'ENOENT') throw error; }
+              }
+              if (!saved || digest(saved) !== active.token_hash) {
+                // Recreate stale files with private permissions, including after a backup restore.
+                rmSync(file, { force: true });
+                writeFileSync(file, generateRecoveryCode(email) + '\n', { flag: 'wx', mode: 0o600 });
+              }
+              db.exec('COMMIT');
+            } catch (error) {
+              db.exec('ROLLBACK');
+              throw fail(503, 'Could not prepare the recovery file. Check that ClearLedger can write to its data folder and try again.');
+            }
+          }
+          send(200, { filename }); return;
+        }
+        if (typeof body.password !== 'string' || body.password.length < 12 || body.password.length > 128) throw fail(400, 'Enter a password of 12–128 characters.');
         if (path === '/api/reset-password') {
           const invalidCode = () => fail(400, 'The recovery code is invalid or expired. Check the email and code, or generate a new code.');
           const code = typeof body.code === 'string' ? body.code.trim().toLowerCase() : '';
