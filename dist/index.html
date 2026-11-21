@@ -9,13 +9,33 @@
   <div class="sidebar-bottom"><div class="habit">Small steps.<br>Better habits.<span>Make room for what matters.</span></div><button data-view="settings"><span data-icon="settings"></span>Settings</button><p class="device"><span data-icon="check"></span><span id="save-status">Saved on this device</span></p></div>
 </aside>
 <main id="main">
-  <header class="page-header"><div><h1 id="page-title">Your month, at a glance</h1><p id="page-subtitle">A little clarity for your everyday spending.</p></div><div class="header-actions"><label class="month-control"><span class="sr-only">Select month</span><input type="month" id="month" min="1900-01" max="9999-12"></label><button class="primary" id="add"><span data-icon="plus"></span>Add transaction</button></div></header>
+  <header class="page-header"><div><h1 id="page-title">Your month, at a glance</h1><p id="page-subtitle">A little clarity for your everyday spending.</p></div><div class="header-actions"><label class="month-control"><span class="sr-only">Select month</span><input type="month" id="month" min="1900-01" max="9999-12"></label><button class="primary" id="add"><span data-icon="plus"></span>Add transaction</button><button class="secondary" id="header-sign-out" hidden>Sign out</button></div></header>
   <div id="notice" role="alert" hidden></div>
   <div class="demo-bar" id="demo-bar"><span><span class="badge">Sample data</span> Take a look around. Sign in to save your personal ledger.</span><button id="start-fresh">Sign in / create account<span data-icon="refresh"></span></button></div>
   <div id="content"></div>
   <footer>Your money, a little clearer.<span>Local SQLite storage. No bank connection.</span></footer>
 </main>
-<dialog id="auth-dialog" aria-labelledby="auth-title"><form id="auth-form"><h2 id="auth-title">Your personal ledger</h2><p class="panel-intro">Sign in or create an account on this computer. Use a password of 12–128 characters.</p><label>Email<input name="email" type="email" autocomplete="username" maxlength="254" required></label><label>Password<input name="password" type="password" autocomplete="current-password" minlength="12" maxlength="128" required></label><p id="auth-error" class="form-error" role="alert"></p><div class="dialog-actions"><button type="button" id="auth-cancel" class="secondary">Cancel</button><button type="submit" value="register" class="secondary">Create account</button><button type="submit" value="login" class="primary">Sign in</button></div></form></dialog>
+<dialog id="auth-dialog" aria-labelledby="auth-title">
+  <form id="auth-form">
+    <h2 id="auth-title">Your personal ledger</h2>
+    <p class="panel-intro auth-intro">Sign in or create an account on this computer. Use a password of 12–128 characters.</p>
+    <p id="auth-status" role="status"></p>
+    <label>Email<input name="email" type="email" autocomplete="username" maxlength="254" required></label>
+    <label>Password<input name="password" type="password" autocomplete="current-password" minlength="12" maxlength="128" required></label>
+    <button type="button" id="forgot-password">Forgot password?</button>
+    <p id="auth-error" class="form-error" role="alert"></p>
+    <div class="dialog-actions"><button type="button" id="auth-cancel" class="secondary">Cancel</button><button type="submit" value="login" class="primary">Sign in</button><button type="submit" value="register" class="secondary">Create account</button></div>
+  </form>
+  <form id="reset-form" hidden>
+    <h2 id="reset-title">Reset your password</h2>
+    <p class="panel-intro auth-intro" id="reset-help">In a terminal on the computer running ClearLedger, open the ClearLedger folder and run <code>npm run recovery-code -- you@example.com</code> with your account email. The code expires in 15 minutes.</p>
+    <label>Email<input name="email" type="email" autocomplete="username" maxlength="254" required></label>
+    <label>Recovery code<input name="code" type="password" autocomplete="off" maxlength="64" required aria-describedby="reset-help"></label>
+    <label>New password (12–128 characters)<input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>
+    <p id="reset-error" class="form-error" role="alert"></p>
+    <div class="dialog-actions"><button type="button" id="reset-back" class="secondary">Back to sign in</button><button type="submit" class="primary">Reset password</button></div>
+  </form>
+</dialog>
 <dialog id="editor" aria-labelledby="editor-title"><form id="transaction-form"><div class="dialog-heading"><div><h2 id="editor-title">Add transaction</h2><p>A small entry. A clearer picture.</p></div><button type="button" class="icon-button" data-close aria-label="Close transaction form"><span data-icon="close"></span></button></div><div class="type-toggle"><label><input type="radio" name="type" value="expense" checked>Expense</label><label><input type="radio" name="type" value="income">Income</label></div><label>Description<input name="description" maxlength="160" required placeholder="What was it for?" autocomplete="off"></label><div class="form-grid"><label>Amount <span class="currency-label"></span><input name="amount" inputmode="decimal" required placeholder="0.00" pattern="[0-9]+([.][0-9]{1,2})?"></label><label>Date<input name="date" type="date" min="1900-01-01" max="9999-12-31" required></label></div><label>Category<select name="category" required></select></label><p class="form-error" id="form-error" role="alert"></p><div class="dialog-actions"><button type="button" class="danger" id="delete" hidden>Delete transaction</button><button type="button" data-close class="secondary">Cancel</button><button type="submit" class="primary">Save transaction</button></div></form></dialog>
 <dialog id="confirm-dialog" aria-labelledby="confirm-title"><form method="dialog"><h2 id="confirm-title">Please confirm</h2><p id="confirm-message" class="panel-intro"></p><div class="dialog-actions"><button value="cancel" class="secondary" autofocus>Cancel</button><button value="confirm" class="primary">Confirm</button></div></form></dialog>
 <div class="toast" id="toast" role="status" hidden></div>

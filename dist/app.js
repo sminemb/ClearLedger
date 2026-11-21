@@ -21,7 +21,16 @@ async function loadAccount() {
   state = validate(ledger.state); revision = ledger.revision; account = ledger.account; demo = false; blocked = false;
   $('#notice').hidden = true; render();
 }
-function openAuth() { $('#auth-error').textContent = ''; $('#auth-dialog').showModal(); }
+function showRecoveryForm(recovering) {
+  $('#auth-form').hidden = recovering;
+  $('#reset-form').hidden = !recovering;
+  $('#auth-dialog').setAttribute('aria-labelledby', recovering ? 'reset-title' : 'auth-title');
+}
+function openAuth() {
+  showRecoveryForm(false);
+  $('#auth-error').textContent = ''; $('#auth-status').textContent = '';
+  $('#auth-dialog').showModal();
+}
 $('#month').value = month;
 const money = value => new Intl.NumberFormat(undefined,{style:'currency',currency:state.currency}).format(value/100);
 const monthName = () => new Date(month+'-01T12:00:00').toLocaleDateString(undefined,{month:'long',year:'numeric'});
@@ -86,7 +95,8 @@ function render() {
   const titles = {overview:['Your month, at a glance','A little clarity for your everyday spending.'],transactions:['Your transactions','Every entry brings a little more clarity.'],budgets:['A plan for your month','Spend with intention. Leave room for what matters.'],settings:['Your space, your settings','Simple preferences. Complete ownership.']};
   $('#page-title').textContent = titles[view][0]; $('#page-subtitle').textContent = titles[view][1];
   document.querySelectorAll('[data-view]').forEach(b=>{b.classList.toggle('active',b.dataset.view===view);b.setAttribute('aria-current',b.dataset.view===view?'page':'false');});
-  $('#demo-bar').hidden = !demo; $('#save-status').textContent = demo?'Exploring sample data':blocked?'Reload required':'Saved to local database';
+  $('#demo-bar').hidden = !demo; $('#header-sign-out').hidden = demo;
+  $('#save-status').textContent = demo?'Exploring sample data':blocked?'Reload required':'Saved to local database';
   const totals=summary(state,month);
   $('#content').innerHTML = view==='settings'?settingsHTML():totalsHTML(totals)+(view==='overview'?`<div class="overview-grid">${breakdown(totals)}<section class="panel"><h2>Monthly budget</h2><p class="panel-intro">Your spending against this month’s budgets.</p>${budgetItems(totals)}<button class="primary wide" data-go="budgets">${icon('edit')}Edit budgets</button></section></div>`+transactionsHTML(true):view==='transactions'?transactionsHTML():budgetsHTML(totals));
   $('#add').disabled = blocked; if ($('#currency')) $('#currency').disabled = blocked;
@@ -113,7 +123,13 @@ document.addEventListener('click',async event=>{
   if(button.matches('#start-fresh,#settings-start'))openAuth();
   if(button.hasAttribute('data-export'))download(csv(state),'clearledger-transactions.csv','text/csv;charset=utf-8');
   if(button.id==='import-browser') await importBrowserRecords();
-  if(button.id==='sign-out') { if (saving) return; try { await api('logout', 'POST', {}); location.reload(); } catch(error) { showError(error.message); } }
+  if(button.id==='sign-out' || button.id==='header-sign-out') {
+    if (saving) return;
+    saving = true;
+    button.disabled = true;
+    try { await api('logout', 'POST', {}); location.reload(); }
+    catch (error) { saving = false; button.disabled = false; showError(error.message); }
+  }
   if(button.id==='backup')download(JSON.stringify(state,null,2),'clearledger-backup.json','application/json');
   if(button.id==='recovery') { try {download(localStorage.getItem(key)||'','clearledger-recovery.txt','text/plain');}catch{showError('Browser storage is unavailable. Allow storage access and reload.');} }
 });
@@ -142,12 +158,58 @@ $('#auth-form').addEventListener('submit', async event => {
   if (form.dataset.busy) return;
   form.dataset.busy = 'true'; form.querySelectorAll('button').forEach(control => control.disabled = true); $('#auth-error').textContent = '';
   try {
-    await api(button.value, 'POST', { email: form.elements.email.value, password: form.elements.password.value });
+    await api(button?.value || 'login', 'POST', { email: form.elements.email.value, password: form.elements.password.value });
     await loadAccount(); form.reset(); $('#auth-dialog').close(); toast('Your personal ledger is ready.');
   } catch (error) { $('#auth-error').textContent = error.message; }
   finally { delete form.dataset.busy; form.querySelectorAll('button').forEach(control => control.disabled = false); }
 });
 $('#auth-cancel').addEventListener('click', () => $('#auth-dialog').close());
+$('#forgot-password').addEventListener('click', () => {
+  const authForm = $('#auth-form');
+  const resetForm = $('#reset-form');
+  resetForm.reset();
+  resetForm.elements.email.value = authForm.elements.email.value;
+  authForm.elements.password.value = '';
+  $('#auth-status').textContent = ''; $('#auth-error').textContent = ''; $('#reset-error').textContent = '';
+  showRecoveryForm(true);
+  resetForm.elements.email.focus();
+});
+$('#reset-back').addEventListener('click', () => {
+  $('#reset-form').reset();
+  showRecoveryForm(false);
+  $('#forgot-password').focus();
+});
+$('#auth-dialog').addEventListener('cancel', event => {
+  if ($('#auth-form').dataset.busy || $('#reset-form').dataset.busy) event.preventDefault();
+});
+$('#auth-dialog').addEventListener('close', () => {
+  $('#auth-form').elements.password.value = '';
+  $('#reset-form').reset();
+});
+$('#reset-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const form = event.target;
+  if (form.dataset.busy) return;
+  const { email, code, password } = form.elements;
+  const authForm = $('#auth-form');
+  form.dataset.busy = 'true';
+  const buttons = form.querySelectorAll('button');
+  buttons.forEach(button => button.disabled = true);
+  $('#reset-error').textContent = '';
+  try {
+    const accountEmail = email.value;
+    await api('reset-password', 'POST', { email: accountEmail, code: code.value, password: password.value });
+    form.reset();
+    authForm.elements.email.value = accountEmail;
+    showRecoveryForm(false);
+    $('#auth-status').textContent = 'Password reset. Sign in with your new password.';
+    authForm.elements.password.focus();
+  } catch (error) { $('#reset-error').textContent = error.message; }
+  finally {
+    delete form.dataset.busy;
+    buttons.forEach(button => button.disabled = false);
+  }
+});
 render();
 $('#add').disabled = true;
 try { await loadAccount(); }

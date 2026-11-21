@@ -41,7 +41,12 @@ test('accounts isolate data, reject unsafe writes, and survive a server restart'
     assert.deepEqual((await (await request('/api/ledger', 'GET', undefined, otherCookie)).json()).state, empty());
     await app.close(); base = await start();
     assert.deepEqual((await (await request('/api/ledger', 'GET', undefined, cookie)).json()).state, state);
-    assert.equal((await request('/api/logout', 'POST', {}, cookie)).status, 200);
+    assert.equal((await request('/api/logout', 'POST', {}, cookie, 'https://foreign.example')).status, 403);
+    for (let i = 0; i < 2; i++) {
+      const logout = await request('/api/logout', 'POST', {}, cookie);
+      assert.equal(logout.status, 200);
+      assert.match(logout.headers.get('set-cookie'), /clearledger_session=;.*Max-Age=0/);
+    }
     assert.equal((await request('/api/ledger', 'GET', undefined, cookie)).status, 401);
     const login = await request('/api/login', 'POST', credentials);
     assert.equal(login.status, 200);
@@ -50,10 +55,48 @@ test('accounts isolate data, reject unsafe writes, and survive a server restart'
     const stored = database.prepare('SELECT password_hash FROM users WHERE email=?').get(credentials.email);
     assert.notEqual(stored.password_hash, credentials.password);
     assert.equal(stored.password_hash.length, 128);
-    database.prepare('UPDATE sessions SET expires=0').run(); database.close();
+    database.prepare('UPDATE sessions SET expires=0 WHERE user_id=(SELECT id FROM users WHERE email=?)').run(credentials.email); database.close();
     assert.equal((await request('/api/session', 'GET', undefined, loginCookie)).status, 401);
     for (let i = 0; i < 19; i++) assert.equal((await request('/api/login', 'POST', {})).status, 400);
     assert.equal((await request('/api/login', 'POST', {})).status, 429);
     assert.equal((await request('/data/test.sqlite')).status, 404);
+
+    const reset = { email: credentials.email, password: 'new password for this ledger' };
+    assert.equal((await request('/api/reset-password', 'POST', reset)).status, 429);
+    assert.throws(() => app.generateRecoveryCode('unknown@example.com'), /No local account/);
+    const expired = app.generateRecoveryCode(credentials.email);
+    const recoveryDb = new DatabaseSync(join(dir, 'test.sqlite'));
+    const storedCode = recoveryDb.prepare('SELECT token_hash FROM password_recovery').get();
+    assert.match(storedCode.token_hash, /^[a-f0-9]{64}$/);
+    assert.notEqual(storedCode.token_hash, expired);
+    recoveryDb.prepare('UPDATE password_recovery SET expires=0').run();
+    recoveryDb.close();
+
+    await app.close(); base = await start();
+    const resetWith = (code, fields = {}, origin = base) => request('/api/reset-password', 'POST', { ...reset, code, ...fields }, '', origin);
+    assert.equal((await resetWith(expired)).status, 400);
+    const superseded = app.generateRecoveryCode(credentials.email);
+    const code = app.generateRecoveryCode(` ${credentials.email.toUpperCase()} `);
+    assert.equal((await resetWith(superseded)).status, 400);
+    assert.equal((await resetWith(code, { email: 'two@example.com' })).status, 400);
+    assert.equal((await resetWith(code, { password: 'too short' })).status, 400);
+    assert.equal((await resetWith(code, {}, 'https://foreign.example')).status, 403);
+    const freshCookies = await Promise.all([0, 1].map(async () => {
+      const response = await request('/api/login', 'POST', credentials);
+      assert.equal(response.status, 200);
+      return response.headers.get('set-cookie').split(';')[0];
+    }));
+
+    await app.close(); base = await start();
+    const results = await Promise.all([resetWith(code), resetWith(code)]);
+    assert.deepEqual(results.map(response => response.status).sort(), [200, 400]);
+    assert.equal((await resetWith(code)).status, 400);
+    for (const oldCookie of freshCookies) assert.equal((await request('/api/session', 'GET', undefined, oldCookie)).status, 401);
+    assert.equal((await request('/api/session', 'GET', undefined, otherCookie)).status, 200);
+    assert.equal((await request('/api/login', 'POST', credentials)).status, 401);
+    const recovered = await request('/api/login', 'POST', reset);
+    assert.equal(recovered.status, 200);
+    const ledger = await request('/api/ledger', 'GET', undefined, recovered.headers.get('set-cookie').split(';')[0]);
+    assert.deepEqual(await ledger.json(), { state, revision: 1, account: credentials.email });
   } finally { await app.close(); await rm(dir, { recursive: true, force: true }); }
 });

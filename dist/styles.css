@@ -15,3 +15,9 @@
 .budget-title strong{display:flex;align-items:center;gap:10px}.budget-icon{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;color:#52613d}.budget-icon svg{width:18px;height:18px}
 
 @media(min-width:1201px){.budget-item{position:relative;padding:8px 0 8px 42px}.budget-icon{position:absolute;left:0;top:12px}.budget-progress{margin-top:6px}.budget-remaining{margin-top:4px;font-size:11px}.budget-list{margin:14px 0 10px}}
+
+#header-sign-out{white-space:nowrap}
+.auth-intro{margin-bottom:18px}
+#auth-status:not(:empty){color:var(--green);font-size:14px;margin-bottom:18px}
+#forgot-password{padding:6px 0;font-size:14px;text-decoration:underline;text-underline-offset:4px;margin-bottom:8px}
+@media(max-width:760px){.header-actions:has(#header-sign-out:not([hidden])){flex-wrap:wrap;justify-content:flex-start}}

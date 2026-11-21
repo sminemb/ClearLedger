@@ -3,5 +3,5 @@
   "private": true,
   "type": "module",
   "engines": { "node": ">=22.18.0" },
-  "scripts": { "start": "node server.mjs", "test": "node --test" }
+  "scripts": { "start": "node server.mjs", "test": "node --test", "recovery-code": "node server.mjs recovery-code" }
 }
