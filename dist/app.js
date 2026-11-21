@@ -22,8 +22,11 @@ async function loadAccount() {
   $('#notice').hidden = true; render();
 }
 function showRecoveryForm(recovering) {
-  $('#auth-form').hidden = recovering;
-  $('#reset-form').hidden = !recovering;
+  const authForm = $('#auth-form'), resetForm = $('#reset-form');
+  clearFieldError(authForm);
+  clearFieldError(resetForm);
+  authForm.hidden = recovering;
+  resetForm.hidden = !recovering;
   $('#auth-dialog').setAttribute('aria-labelledby', recovering ? 'reset-title' : 'auth-title');
 }
 function openAuth() {
@@ -35,6 +38,32 @@ $('#month').value = month;
 const money = value => new Intl.NumberFormat(undefined,{style:'currency',currency:state.currency}).format(value/100);
 const monthName = () => new Date(month+'-01T12:00:00').toLocaleDateString(undefined,{month:'long',year:'numeric'});
 function showError(message) { $('#notice').textContent = message; $('#notice').hidden = false; }
+function clearFieldError(form) {
+  const field = form.querySelector('[aria-errormessage]');
+  if (!field) return;
+  const alert = form.querySelector('.form-error');
+  field.removeAttribute('aria-invalid');
+  field.removeAttribute('aria-errormessage');
+  alert.textContent = '';
+  form.querySelector('.dialog-actions, button[type="submit"]').before(alert);
+}
+document.addEventListener('invalid', event => {
+  const field = event.target, form = field.form;
+  const alert = form?.querySelector('.form-error');
+  if (!alert) return;
+  event.preventDefault();
+  if (field !== form.querySelector(':invalid')) return;
+
+  clearFieldError(form);
+  const label = field.labels[0];
+  const message = field.validity.patternMismatch && field.title ? field.title : field.validationMessage;
+  (label.closest('.form-grid') || label).after(alert);
+  alert.textContent = `${label.textContent.trim()}: ${message}`;
+  field.setAttribute('aria-invalid', 'true');
+  field.setAttribute('aria-errormessage', alert.id);
+  field.focus();
+}, true);
+document.addEventListener('reset', event => clearFieldError(event.target));
 function toast(message) { $('#toast').textContent = message; $('#toast').hidden = false; clearTimeout(toast.timer); toast.timer = setTimeout(() => $('#toast').hidden = true, 3500); }
 async function commit(next) {
   if (blocked || saving) { showError('A save is in progress or records need attention. Wait or reload before saving.'); return false; }
@@ -88,7 +117,7 @@ function transactionsHTML(recent=false) {
   return `<section class="panel"><div class="section-heading"><div><h2>${recent?'Recent transactions':'Transactions'}</h2><p class="panel-intro">${recent?'Your latest income and spending.':'Your everyday spending, all in one place.'}</p></div><button class="secondary" ${recent?'data-go="transactions"':'data-export'}>${recent?'View all transactions':icon('download')+'Export CSV'}</button></div>${recent?'':`<div class="filters"><input type="search" id="search" aria-label="Search transaction descriptions" placeholder="Search transactions…" value="${escape(search)}"><select id="category-filter" aria-label="Filter category"><option value="">All categories</option>${categories.map(c=>`<option ${filterCategory===c?'selected':''}>${escape(c)}</option>`).join('')}</select><select id="type-filter" aria-label="Filter transaction type"><option value="">All types</option><option value="expense" ${filterType==='expense'?'selected':''}>Expenses</option><option value="income" ${filterType==='income'?'selected':''}>Income</option></select></div>`}${rows.length?`<div class="table-wrap"><table><thead><tr><th scope="col">Date</th><th scope="col">Description</th><th scope="col">Category</th><th scope="col">Amount</th></tr></thead><tbody>${rows.map(t=>`<tr><td class="date-cell">${new Date(t.date+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'2-digit'})}</td><td><button class="description-button" data-edit="${escape(t.id)}" aria-label="Edit ${escape(t.description)}">${escape(t.description)}</button></td><td>${tag(t.category)}</td><td class="amount ${t.type==='income'?'income':''}">${t.type==='income'?'+':'−'}${money(t.amount)}</td></tr>`).join('')}</tbody></table></div>`:`<div class="empty"><h3>${search||filterCategory||filterType?'No matching transactions':'A fresh page for '+escape(monthName())}</h3><p>${search||filterCategory||filterType?'Try another search or clear the filters.':'Add your first income or expense to start seeing the bigger picture.'}</p><button class="primary" data-add>${icon('plus')}Add transaction</button></div>`}</section>`;
 }
 function budgetsHTML(totals) {
-  return `<section class="panel budget-form"><h2>Plan your month</h2><p class="panel-intro">Set limits for ${escape(monthName())}. Leave a field blank for no budget.</p><form id="budget-form">${categories.map(c=>`<div class="budget-edit-row"><div><h3>${escape(c)}</h3><p>${money(totals.categories[c])} spent this month</p></div><label><span class="sr-only">${escape(c)} budget in ${state.currency}</span><input inputmode="decimal" name="${escape(c)}" placeholder="No limit" pattern="[0-9]+([.][0-9]{1,2})?" value="${state.budgets[month]?.[c]===undefined?'':(state.budgets[month][c]/100).toFixed(2)}"></label></div>`).join('')}<p id="budget-error" class="form-error" role="alert"></p><button class="primary" type="submit">Save budgets</button></form></section>`;
+  return `<section class="panel budget-form"><h2>Plan your month</h2><p class="panel-intro">Set limits for ${escape(monthName())}. Leave a field blank for no budget.</p><form id="budget-form">${categories.map(c=>`<div class="budget-edit-row"><div><h3>${escape(c)}</h3><p>${money(totals.categories[c])} spent this month</p></div><label><span class="sr-only">${escape(c)} budget in ${state.currency}</span><input inputmode="decimal" name="${escape(c)}" placeholder="No limit" pattern="[0-9]+([.][0-9]{1,2})?" title="Enter an amount with up to two decimal places." value="${state.budgets[month]?.[c]===undefined?'':(state.budgets[month][c]/100).toFixed(2)}"></label></div>`).join('')}<p id="budget-error" class="form-error" role="alert"></p><button class="primary" type="submit">Save budgets</button></form></section>`;
 }
 function settingsHTML() { return `<section class="panel settings-panel"><h2>Make it yours</h2><p>${account ? 'Signed in as ' + escape(account) + '. Records are saved in SQLite on this computer.' : 'Explore sample data, or sign in to save a personal ledger on this computer.'}</p><label>Display currency<select id="currency">${currencies.map(c=>`<option ${state.currency===c?'selected':''}>${c}</option>`).join('')}</select></label><p>Changing currency changes the label on existing amounts. It does not convert them using exchange rates.</p><hr><h2>Your records, in your hands</h2><p>Export your transactions as CSV for a spreadsheet, or download a full JSON copy of your records and budgets. Keep a backup of your records and the local database.</p><div class="settings-actions"><button class="secondary" data-export>${icon('download')}Export CSV</button><button class="secondary" id="backup">Download full backup</button></div>${blocked?'<button class="secondary" id="recovery">Download recovery data</button>':''}<small>${demo?'You’re exploring sample data. Changes in sample mode are temporary.':'Your account is available through this local server. No cloud syncing.'}</small>${demo?'<hr><button class="primary" id="settings-start">Sign in or create account</button>':'<hr><button class="secondary" id="import-browser">Import legacy browser records</button><button class="secondary" id="sign-out">Sign out</button>'}</section>`; }
 function render() {
@@ -140,7 +169,15 @@ document.addEventListener('change',async event=>{
   if(event.target.id==='type-filter'){filterType=event.target.value;render();}
   if(event.target.id==='currency'){const next=structuredClone(state);next.currency=event.target.value;if(await commit(next)){render();toast('Display currency updated.');}else event.target.value=state.currency;}
 });
-document.addEventListener('input',event=>{if(event.target.id==='search'){search=event.target.value;const cursor=event.target.selectionStart;render();$('#search').focus();$('#search').setSelectionRange(cursor,cursor);}});
+document.addEventListener('input', event => {
+  const field = event.target;
+  if (field.hasAttribute('aria-errormessage')) clearFieldError(field.form);
+  if (field.id === 'search') {
+    search = field.value;
+    const cursor = field.selectionStart;
+    render(); $('#search').focus(); $('#search').setSelectionRange(cursor, cursor);
+  }
+});
 $('#editor').addEventListener('cancel', event => { if (saving) event.preventDefault(); });
 $('#transaction-form').addEventListener('submit',async event=>{
   event.preventDefault(); const form=event.target;

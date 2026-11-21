@@ -37,8 +37,44 @@ async function editorApp() {
   const close = () => document.emit('click', { target: { closest: () => ({ dataset: {}, matches: () => false, hasAttribute: name => name === 'data-close' }) } });
   app.openEditor();
   form.elements.description.value = 'Transaction A'; form.elements.amount.value = '12.34';
-  return { ...app, node, form, writes, close };
+  return { ...app, document, node, form, writes, close };
 }
+
+test('form validation focuses the first invalid field and clears its styled message on edit', async () => {
+  const app = await editorApp();
+  const field = app.form.elements.description;
+  const alert = app.node('#form-error');
+  alert.id = 'form-error';
+  const attributes = new Map();
+  const label = { textContent: 'Description', closest: () => null, after: node => { node.position = 'field'; } };
+  const actions = { before: node => { node.position = 'actions'; } };
+  Object.assign(field, {
+    form: app.form, labels: [label], validity: {}, validationMessage: 'Please fill out this field.',
+    focus() { this.focused = true; },
+    setAttribute(key, value) { attributes.set(key, value); },
+    hasAttribute(key) { return attributes.has(key); },
+    removeAttribute(key) { attributes.delete(key); },
+  });
+  app.form.querySelector = selector => ({
+    '.form-error': alert,
+    ':invalid': field,
+    '[aria-errormessage]': attributes.has('aria-errormessage') ? field : null,
+    '.dialog-actions, button[type="submit"]': actions,
+  })[selector];
+
+  assert.equal((await app.document.emit('invalid', { target: field })).defaultPrevented, true);
+  assert.equal(alert.textContent, 'Description: Please fill out this field.');
+  assert.equal(alert.position, 'field');
+  assert.equal(attributes.get('aria-invalid'), 'true');
+  assert.equal(attributes.get('aria-errormessage'), alert.id);
+  assert.equal(field.focused, true);
+  assert.equal(app.writes.length, 0);
+
+  await app.document.emit('input', { target: field });
+  assert.equal(alert.textContent, '');
+  assert.equal(alert.position, 'actions');
+  assert.equal(attributes.size, 0);
+});
 
 test('a delayed save locks the editor until completion, then permits a new draft', async () => {
   const app = await editorApp();
